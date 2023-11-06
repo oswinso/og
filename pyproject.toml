@@ -7,6 +7,7 @@ dependencies = [
     "jax",
     "einops",
     "jaxtyping",
+    "loguru"
 ]
 dynamic = ["version"]
 

@@ -1,9 +1,13 @@
 from typing import Union
 
 import numpy as np
-from jaxtyping import Array, Bool, Float, Int, Shaped
+from jaxtyping import Array, Bool, Float, Int, Shaped, PRNGKeyArray
 
 Arr = Union[np.ndarray, Array]
+
+AnyShaped = Shaped[Arr, "*"]
+AnyFloat = Float[Arr, "*"]
+Shape = tuple[int, ...]
 
 FloatScalar = float | Float[Arr, ""]
 IntScalar = int | Int[Arr, ""]
