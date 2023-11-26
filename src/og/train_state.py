@@ -5,6 +5,7 @@ import optax
 from flax import struct
 
 from og.jax_types import FloatScalar
+from og.none import get_or
 from og.rng import PRNGKey
 
 _Params = TypeVar("_Params")
@@ -30,11 +31,15 @@ class TrainState(Generic[_R], struct.PyTreeNode):
     tx: optax.GradientTransformation = struct.field(pytree_node=False)
     opt_state: optax.OptState | optax.InjectHyperparamsState
 
-    def vars_dict(self):
-        return {"params": self.params}
+    def vars_dict(self, params: _Params | None = None):
+        params = get_or(params, self.params)
+        return {"params": params}
 
     def apply(self, *args: _P.args, **kwargs: _P.kwargs) -> _R:
         return self.apply_fn(self.vars_dict(), *args, **kwargs)
+
+    def apply_with(self, *args: _P.args, params: _Params, **kwargs: _P.kwargs):
+        return self.apply_fn(self.vars_dict(params), *args, **kwargs)
 
     def apply_gradients(self, grads: _Params, **kwargs) -> "TrainState":
         updates, new_opt_state = self.tx.update(grads, self.opt_state, self.params)

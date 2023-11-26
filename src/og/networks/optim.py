@@ -12,7 +12,7 @@ def wd_mask(params):
     flat_params: dict[Path, jnp.ndarray] = traverse_util.flatten_dict(params)
     # Apply weight decay to all parameters except biases and LayerNorm scale and bias.
     flat_mask = {path: (path[-1] != "bias" and path[-2:] != ("LayerNorm", "scale")) for path in flat_params}
-    return freeze(traverse_util.unflatten_dict(flat_mask))
+    return traverse_util.unflatten_dict(flat_mask)
 
 
 def optim(learning_rate: float, wd: float):

@@ -1,20 +1,15 @@
-import functools as ft
 from typing import Any, Callable, Iterable, ParamSpec, Sequence, TypeVar
 
 import einops as ei
-import ipdb
 import jax._src.dtypes
 import jax.config
-import jax.lax as lax
-import jax.nn as jnn
 import jax.numpy as jnp
 import jax.tree_util as jtu
 import numpy as np
 from jax._src.lib import xla_client as xc
-from jax._src.typing import ArrayLike
-from loguru import logger
+from jaxtyping import Float
 
-from og.jax_types import Arr, BFloat, BoolScalar, FloatScalar
+from og.jax_types import Arr
 
 _PyTree = TypeVar("_PyTree")
 _P = ParamSpec("_P")
@@ -67,3 +62,67 @@ def jax_use_cpu() -> None:
 
 def jax2np(pytree: _PyTree) -> _PyTree:
     return jtu.tree_map(np.array, pytree)
+
+
+def merge01(x):
+    return ei.rearrange(x, "n1 n2 ... -> (n1 n2) ...")
+
+
+def rep_vmap(fn: _Fn, rep: int, in_axes: int | Sequence[Any] = 0, **kwargs) -> _Fn:
+    for ii in range(rep):
+        fn = jax.vmap(fn, in_axes=in_axes, **kwargs)
+    return fn
+
+
+def jax_vmap(fn: _Fn, in_axes: int | Sequence[Any] = 0, out_axes: Any = 0, rep: int = None) -> _Fn:
+    if rep is not None:
+        return rep_vmap(fn, rep=rep, in_axes=in_axes, out_axes=out_axes)
+
+    return jax.vmap(fn, in_axes, out_axes)
+
+
+def jax_jit_np(
+    fn: _Fn,
+    static_argnums: int | Sequence[int] | None = None,
+    static_argnames: str | Iterable[str] | None = None,
+    donate_argnums: int | Sequence[int] = (),
+    device: xc.Device = None,
+    *args,
+    **kwargs,
+):
+    jit_fn = jax.jit(fn, static_argnums, static_argnames, donate_argnums, device, *args, **kwargs)
+
+    def wrapper(*args, **kwargs):
+        return jax2np(jit_fn(*args, **kwargs))
+
+    return wrapper
+
+
+def concat_at_front(arr1: Float[Arr, "nx"], arr2: Float[Arr, "T nx"], axis: int = 0) -> Float[Arr, "Tp1 nx"]:
+    """
+    :param arr1: (nx, )
+    :param arr2: (T, nx)
+    :param axis: Which axis for arr1 to concat under.
+    :return: (T + 1, nx) with [arr1 arr2]
+    """
+    # The shapes of arr1 and arr2 should be the same without the dim at axis for arr1.
+    arr2_shape = list(arr2.shape)
+    del arr2_shape[axis]
+    assert np.all(np.array(arr1.shape) == np.array(arr2_shape))
+
+    return jnp.concatenate([jnp.expand_dims(arr1, axis=axis), arr2], axis=axis)
+
+
+def concat_at_end(arr1: Float[Arr, "T nx"], arr2: Float[Arr, "nx"], axis: int = 0) -> Float[Arr, "Tp1 nx"]:
+    """
+    :param arr1: (T, nx)
+    :param arr2: (nx, )
+    :param axis: Which axis for arr1 to concat under.
+    :return: (T + 1, nx) with [arr1 arr2]
+    """
+    # The shapes of arr1 and arr2 should be the same without the dim at axis for arr1.
+    arr1_shape = list(arr1.shape)
+    del arr1_shape[axis]
+    assert np.all(np.array(arr1_shape) == np.array(arr2.shape))
+
+    return jnp.concatenate([arr1, jnp.expand_dims(arr2, axis=axis)], axis=axis)

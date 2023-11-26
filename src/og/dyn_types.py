@@ -1,8 +1,9 @@
-from typing import TypeVar
+from typing import Protocol, TypeVar
 
 from jaxtyping import Bool
 
 from og.jax_types import Arr, Float
+from og.tfp import tfd
 
 State = Float[Arr, "nx"]
 EncState = Float[Arr, "enc_nx"]
@@ -21,6 +22,10 @@ BObs = Float[Arr, "b nobs"]
 BPolObs = Float[Arr, "b npolobs"]
 BVObs = Float[Arr, "b nVobs"]
 BParam = TypeVar("BParam")
+
+TFloat = Float[Arr, "T"]
+THFloat = Float[Arr, "T nh"]
+TObs = Float[Arr, "T nobs"]
 
 SState = Float[Arr, "s nx"]
 SControl = Float[Arr, "s nx"]
@@ -86,3 +91,13 @@ FuShape = Float[Arr, "nx nu"]
 
 TState = Float[Arr, "T nx"]
 TControl = Float[Arr, "T nu"]
+
+
+class DetPolicy(Protocol):
+    def __call__(self, state: State) -> Control:
+        ...
+
+
+class StochPolicy(Protocol):
+    def __call__(self, state: State) -> tfd.Distribution:
+        ...

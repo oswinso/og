@@ -7,7 +7,7 @@ Arr = Union[np.ndarray, Array]
 
 AnyShaped = Shaped[Arr, "*"]
 AnyFloat = Float[Arr, "*"]
-Shape = tuple[int, ...]
+Shape = Union[tuple[int, ...], list[int]]
 
 FloatScalar = float | Float[Arr, ""]
 IntScalar = int | Int[Arr, ""]
