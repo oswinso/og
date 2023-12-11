@@ -38,7 +38,7 @@ class TrainState(Generic[_R], struct.PyTreeNode):
     def apply(self, *args: _P.args, **kwargs: _P.kwargs) -> _R:
         return self.apply_fn(self.vars_dict(), *args, **kwargs)
 
-    def apply_with(self, *args: _P.args, params: _Params, **kwargs: _P.kwargs):
+    def apply_with(self, *args: _P.args, params: _Params, **kwargs: _P.kwargs) -> _R:
         return self.apply_fn(self.vars_dict(params), *args, **kwargs)
 
     def apply_gradients(self, grads: _Params, **kwargs) -> "TrainState":

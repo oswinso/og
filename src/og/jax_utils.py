@@ -126,3 +126,8 @@ def concat_at_end(arr1: Float[Arr, "T nx"], arr2: Float[Arr, "nx"], axis: int = 
     assert np.all(np.array(arr1_shape) == np.array(arr2.shape))
 
     return jnp.concatenate([arr1, jnp.expand_dims(arr2, axis=axis)], axis=axis)
+
+
+def sinc(x: Float[Arr, "..."]) -> Float[Arr, "..."]:
+    """Note: The derivative is not correct at x = 0 because we use where."""
+    return jnp.where(x == 0.0, jnp.ones_like(x), jnp.sin(x) / x)

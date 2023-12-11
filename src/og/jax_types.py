@@ -17,6 +17,9 @@ BFloat = Float[Arr, "b"]
 BInt = Int[Arr, "b"]
 BBool = Bool[Arr, "b"]
 
+Vec2 = Float[Arr, "2"]
+Vec3 = Float[Arr, "3"]
+
 RotMat2D = Float[Arr, "2 2"]
 RotMat3D = Float[Arr, "3 3"]
 
