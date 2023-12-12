@@ -12,7 +12,7 @@ def encode_vec2d_exp(vec2: Vec2, eps: float = 1e-5) -> Vec3:
     return jnp.array([vec2_unit[0], vec2_unit[1], norm_encoded])
 
 
-def encode_vec2d_log(vec2: Vec2, max_dist: float) -> Vec3:
+def encode_vec2d_log(vec2: Vec2, max_dist: float, eps: float = 1e-5) -> Vec3:
     assert vec2.shape == (2,)
     norm = jnp.sqrt(jnp.sum(vec2**2) + eps)
     vec2_unit = vec2 / norm
