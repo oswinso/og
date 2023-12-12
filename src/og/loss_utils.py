@@ -47,3 +47,8 @@ def clip_values_only(x, x_lo, x_hi):
     """Clip values of x between x_lo and x_hi, but keep the gradient of x."""
     diff = lax.stop_gradient(jnp.clip(x, x_lo, x_hi) - x)
     return x + diff
+
+
+def safe_norm(x, axis: int = None, eps: float = 1e-5):
+    # return jnp.linalg.norm(x, axis=axis)
+    return jnp.sqrt(jnp.sum(x**2, axis=axis) + eps)

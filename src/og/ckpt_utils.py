@@ -46,7 +46,10 @@ def get_checkpointer():
 
 def get_ckpt_manager_sync(ckpt_dir: pathlib.Path, max_to_keep: int = 50, minutes: float = 5):
     options = orbax.checkpoint.CheckpointManagerOptions(
-        max_to_keep=max_to_keep, keep_time_interval=datetime.timedelta(minutes=minutes), create=True
+        max_to_keep=max_to_keep,
+        keep_time_interval=datetime.timedelta(minutes=minutes),
+        create=True,
+        step_format_fixed_length=8,
     )
     orbax_checkpointer = orbax.checkpoint.PyTreeCheckpointer()
     ckpt_manager = WrappedCkptManager(ckpt_dir, orbax_checkpointer, options)
