@@ -4,6 +4,14 @@ import numpy as np
 from og.jax_types import FloatScalar, Vec2, Vec3
 
 
+def encode_vec2d(vec2: Vec2, eps: float = 1e-5) -> Vec3:
+    assert vec2.shape == (2,)
+    norm = jnp.sqrt(jnp.sum(vec2**2) + eps)
+    norm_feat = norm - 0.5
+    vec2_unit = vec2 / norm
+    return jnp.array([vec2_unit[0], vec2_unit[1], norm])
+
+
 def encode_vec2d_exp(vec2: Vec2, eps: float = 1e-5) -> Vec3:
     assert vec2.shape == (2,)
     norm = jnp.sqrt(jnp.sum(vec2**2) + eps)
