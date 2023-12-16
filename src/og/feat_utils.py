@@ -28,8 +28,8 @@ def encode_vec2d_log(vec2: Vec2, max_dist: float, eps: float = 1e-5, clip: bool 
     norm_encoded = norm_encoded / np.log(1 + max_dist)
     # Normalize norm_encoded to be [-1, 1].
     norm_encoded = norm_encoded * 2 - 1
-    # Clip it to prevent OOD.
     if clip:
+        # Clip it to prevent OOD.
         norm_encoded = norm_encoded.clip(min=-1, max=1)
     return jnp.array([vec2_unit[0], vec2_unit[1], norm_encoded])
 
@@ -50,7 +50,7 @@ def encode_vec3d_exp(vec3: Vec3, eps: float = 1e-5) -> Vec4:
     return jnp.array([vec3_unit[0], vec3_unit[1], vec3_unit[2], norm_encoded])
 
 
-def encode_vec3d_log(vec3: Vec3, max_dist: float, eps: float = 1e-5) -> Vec4:
+def encode_vec3d_log(vec3: Vec3, max_dist: float, eps: float = 1e-5, clip: bool = True) -> Vec4:
     assert vec3.shape == (3,)
     norm = jnp.sqrt(jnp.sum(vec3**2) + eps)
     vec3_unit = vec3 / norm
@@ -59,8 +59,9 @@ def encode_vec3d_log(vec3: Vec3, max_dist: float, eps: float = 1e-5) -> Vec4:
     norm_encoded = norm_encoded / np.log(1 + max_dist)
     # Normalize norm_encoded to be [-1, 1].
     norm_encoded = norm_encoded * 2 - 1
-    # Clip it to prevent OOD.
-    norm_encoded = norm_encoded.clip(min=-1, max=1)
+    if clip:
+        # Clip it to prevent OOD.
+        norm_encoded = norm_encoded.clip(min=-1, max=1)
     return jnp.array([vec3_unit[0], vec3_unit[1], vec3_unit[2], norm_encoded])
 
 
