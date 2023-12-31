@@ -1,10 +1,30 @@
 import wandb
+import datetime
+from loguru import logger
 
 
-def reorder_wandb_name(wandb_name: str = None, num_width: int = 4, max_word_len: int = 5) -> str:
+def reorder_wandb_name(
+    wandb_name: str = None, num_width: int = 4, max_word_len: int = 5
+) -> str:
     name_orig = wandb.run.name
+    if name_orig == "":
+        # Probably offline. Generate a new name.
+        if wandb_name is not None:
+            return wandb_name
+
+        stamp_str = datetime.datetime.now().strftime("%m-%d_%H-%M")
+        name = f"offline-run-{stamp_str}"
+        logger.info("Offline, so using name `{}`".format(name))
+        wandb.run.name = name
+        return name
+
     assert name_orig is not None
     name_parts = name_orig.split("-")
+
+    if name_parts[0] == "dummy":
+        # For wandb disabled.
+        return wandb.run.name
+
     assert len(name_parts) == 3
     word0, word1, num = name_parts
     # If words are too long, then truncate them.
@@ -16,3 +36,4 @@ def reorder_wandb_name(wandb_name: str = None, num_width: int = 4, max_word_len:
         new_name = "{}-{}-{}".format(num, word0, word1)
     wandb.run.name = new_name
     return new_name
+
