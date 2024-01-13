@@ -15,6 +15,8 @@ _PyTree = TypeVar("_PyTree")
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
 _Fn = Callable[_P, _R]
+# pycharm type inference doesn't seem to work too well when using _Fn with class methods.
+_F = TypeVar("_F", bound=Callable)
 
 
 def jax_use_double():
@@ -68,13 +70,13 @@ def merge01(x):
     return ei.rearrange(x, "n1 n2 ... -> (n1 n2) ...")
 
 
-def rep_vmap(fn: _Fn, rep: int, in_axes: int | Sequence[Any] = 0, **kwargs) -> _Fn:
+def rep_vmap(fn: _F, rep: int, in_axes: int | Sequence[Any] = 0, **kwargs) -> _F:
     for ii in range(rep):
         fn = jax.vmap(fn, in_axes=in_axes, **kwargs)
     return fn
 
 
-def jax_vmap(fn: _Fn, in_axes: int | Sequence[Any] = 0, out_axes: Any = 0, rep: int = None) -> _Fn:
+def jax_vmap(fn: _F, in_axes: int | Sequence[Any] = 0, out_axes: Any = 0, rep: int = None) -> _F:
     if rep is not None:
         return rep_vmap(fn, rep=rep, in_axes=in_axes, out_axes=out_axes)
 
@@ -82,14 +84,14 @@ def jax_vmap(fn: _Fn, in_axes: int | Sequence[Any] = 0, out_axes: Any = 0, rep: 
 
 
 def jax_jit_np(
-    fn: _Fn,
+    fn: _F,
     static_argnums: int | Sequence[int] | None = None,
     static_argnames: str | Iterable[str] | None = None,
     donate_argnums: int | Sequence[int] = (),
     device: xc.Device = None,
     *args,
     **kwargs,
-):
+) -> _F:
     jit_fn = jax.jit(fn, static_argnums, static_argnames, donate_argnums, device, *args, **kwargs)
 
     def wrapper(*args, **kwargs):
