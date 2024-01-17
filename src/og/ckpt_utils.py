@@ -12,6 +12,17 @@ from flax.training import orbax_utils
 from orbax.checkpoint import CheckpointManager
 
 
+def save_ckpt_ez(save_path: pathlib.Path, item: Any):
+    ckpter = orbax.checkpoint.PyTreeCheckpointer()
+    save_args = orbax_utils.save_args_from_target(item)
+    ckpter.save(save_path, item, save_args=save_args)
+
+
+def load_ckpt_ez(load_path: pathlib.Path, item: Any):
+    ckpter = orbax.checkpoint.PyTreeCheckpointer()
+    return ckpter.restore(load_path, item=item)
+
+
 class WrappedCkptManager(CheckpointManager):
     def save_ez(self, step: int, items: Any):
         if isinstance(items, dict):

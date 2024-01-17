@@ -3,6 +3,7 @@ from typing import TypeVar
 import jax
 import jax.numpy as jnp
 import jax.tree_util as jtu
+import jumpy.numpy as jp
 import numpy as np
 from jax import tree_util as jtu
 
@@ -57,8 +58,14 @@ def tree_concat_at_front(tree1: _PyTree, tree2: _PyTree) -> _PyTree:
 def tree_stack(trees: list[_PyTree], axis: int = 0) -> _PyTree:
     def tree_stack_inner(*arrs):
         arrs = list(arrs)
-        if isinstance(arrs[0], np.ndarray):
-            return np.stack(arrs, axis=axis)
-        return jnp.stack(arrs, axis=axis)
+        return jp.stack(arrs, axis=axis)
 
     return jtu.tree_map(tree_stack_inner, *trees)
+
+
+def tree_cat(trees: list[_PyTree], axis: int = 0) -> _PyTree:
+    def tree_cat_inner(*arrs):
+        arrs = list(arrs)
+        return jp.concatenate(arrs, axis=axis)
+
+    return jtu.tree_map(tree_cat_inner, *trees)
