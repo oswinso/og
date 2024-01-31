@@ -4,6 +4,7 @@ import jax.numpy as jnp
 
 from og.dyn.dyn import ControlAffineCtsDyn, Params
 from og.dyn_types import State
+from og.jax_types import FloatScalar
 
 
 class DBInt(ControlAffineCtsDyn):
@@ -44,7 +45,7 @@ class DBIntForce(ControlAffineCtsDyn):
     """
 
     class _Params(NamedTuple):
-        mass: float
+        mass: FloatScalar
 
     Params = _Params
 
