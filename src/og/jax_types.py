@@ -25,3 +25,5 @@ RotMat2D = Float[Arr, "2 2"]
 RotMat3D = Float[Arr, "3 3"]
 
 FloatDict = dict[str, Union[FloatScalar, "FloatDict"]]
+
+BBFloat = Float[Arr, "b1 b2"]
