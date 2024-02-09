@@ -1,9 +1,11 @@
 import math
 
+import ipdb
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import ArrayLike
 
+from og.none import get_or
 from og.optim.nnls import nnls
 
 
@@ -139,3 +141,24 @@ def line_labels(
 
     for label, ypos, color in zip(labels, targets, colors):
         ax.text(xpos, ypos, label, verticalalignment="center", color=color, **text_kwargs)
+
+
+def axvline_labeled(
+    ax: plt.Axes, xpos: float, text: str, xytext, axvline_kwargs: dict = None, text_kwargs: dict = None
+):
+    axvline_kwargs = get_or(axvline_kwargs, {})
+    text_kwargs = get_or(text_kwargs, {})
+
+    # trans = ax.get_xaxis_transform()
+
+    line = ax.axvline(xpos, **axvline_kwargs)
+    # text = ax.text(xpos, 1.0, text, transform=trans, **text_kwargs)
+    text = ax.annotate(
+        text,
+        (xpos, 1.0),
+        xytext=xytext,
+        xycoords=("data", "axes fraction"),
+        textcoords="offset points",
+        **text_kwargs,
+    )
+    return line, text
