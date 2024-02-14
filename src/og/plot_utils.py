@@ -105,7 +105,7 @@ def line_labels(
     # Get last non-nan y-value.
     targets = []
     for line in lines:
-        ydata = line.get_ydata()
+        ydata = np.array(line.get_ydata())
         targets.append(ydata[~np.isnan(ydata)][ypos_idx])
 
     if logy:

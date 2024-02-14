@@ -69,3 +69,14 @@ def tree_cat(trees: list[_PyTree], axis: int = 0) -> _PyTree:
         return jp.concatenate(arrs, axis=axis)
 
     return jtu.tree_map(tree_cat_inner, *trees)
+
+
+def tree_where(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
+    def tree_where_inner(x, y):
+        return jp.where(cond, x, y)
+
+    return jax.tree_map(tree_where_inner, x_tree, y_tree)
+
+
+def tree_copy(tree: _PyTree) -> _PyTree:
+    return jax.tree_map(lambda x: x.copy(), tree)
