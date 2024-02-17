@@ -1,11 +1,10 @@
-import wandb
 import datetime
+
+import wandb
 from loguru import logger
 
 
-def reorder_wandb_name(
-    wandb_name: str = None, num_width: int = 4, max_word_len: int = 5
-) -> str:
+def reorder_wandb_name(wandb_name: str = None, num_width: int = 4, max_word_len: int = 5) -> str:
     name_orig = wandb.run.name
     if name_orig == "":
         # Probably offline. Generate a new name.
@@ -25,6 +24,10 @@ def reorder_wandb_name(
         # For wandb disabled.
         return wandb.run.name
 
+    # They changed the name format to maybe have 3 words (dazzling-candy-heart-14).
+    # In this case, just keep the first two.
+    if len(name_parts) == 4:
+        name_parts = [name_parts[0], name_parts[1], name_parts[3]]
     assert len(name_parts) == 3
     word0, word1, num = name_parts
     # If words are too long, then truncate them.
@@ -36,4 +39,3 @@ def reorder_wandb_name(
         new_name = "{}-{}-{}".format(num, word0, word1)
     wandb.run.name = new_name
     return new_name
-
