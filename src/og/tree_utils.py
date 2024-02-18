@@ -80,3 +80,12 @@ def tree_where(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
 
 def tree_copy(tree: _PyTree) -> _PyTree:
     return jax.tree_map(lambda x: x.copy(), tree)
+
+
+def tree_len(tree: _PyTree) -> int:
+    return tree_shape(tree, axis=0)
+
+
+def tree_shape(tree: _PyTree, axis: int) -> int:
+    leaves, treedef = jtu.tree_flatten(tree)
+    return leaves[0].shape[axis]
