@@ -24,7 +24,7 @@ def scaled_init(initializer: nn.initializers.Initializer, scale: float) -> nn.in
     return scaled_init_inner
 
 
-ActLiteral = Literal["relu", "tanh", "elu", "swish", "silu", "gelu", "softplus"]
+ActLiteral = Literal["relu", "tanh", "elu", "swish", "silu", "gelu", "softplus", "identity"]
 
 
 def softplus(x, beta: FloatScalar = 20.0):
@@ -33,6 +33,13 @@ def softplus(x, beta: FloatScalar = 20.0):
 
 def get_act_from_str(act_str: ActLiteral) -> ActFn:
     act_dict: dict[Literal, ActFn] = dict(
-        relu=nn.relu, tanh=nn.tanh, elu=nn.elu, swish=nn.swish, silu=nn.silu, gelu=nn.gelu, softplus=softplus
+        relu=nn.relu,
+        tanh=nn.tanh,
+        elu=nn.elu,
+        swish=nn.swish,
+        silu=nn.silu,
+        gelu=nn.gelu,
+        softplus=softplus,
+        identity=lambda x: x,
     )
     return act_dict[act_str]
