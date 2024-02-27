@@ -24,6 +24,7 @@ BVObs = Float[Arr, "b nVobs"]
 BParam = TypeVar("BParam")
 
 TFloat = Float[Arr, "T"]
+Tp1Float = Float[Arr, "b Tp1"]
 THFloat = Float[Arr, "T nh"]
 TObs = Float[Arr, "T nobs"]
 
@@ -89,6 +90,7 @@ BTEState = Float[Arr, "b T e nx"]
 FxShape = Float[Arr, "nx nx"]
 FuShape = Float[Arr, "nx nu"]
 
+TBool = Bool[Arr, "T"]
 TState = Float[Arr, "T nx"]
 TControl = Float[Arr, "T nu"]
 
