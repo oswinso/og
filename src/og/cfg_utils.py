@@ -2,10 +2,11 @@ import functools as ft
 
 import cattrs
 import ipdb
-from attrs import astuple
+from attrs import astuple, define
 from cattrs.strategies import configure_tagged_union, include_subclasses
 
 
+@define
 class Cfg:
     @staticmethod
     def get_converter():
@@ -19,21 +20,25 @@ class Cfg:
 
         converter = cattrs.Converter()
         union_strategy = ft.partial(configure_tagged_union)
-        include_subclasses(Schedule, converter, union_strategy=union_strategy)
 
         converter.register_structure_hook(float | Schedule, structure_float_or_sched)
+
+        include_subclasses(Schedule, converter, union_strategy=union_strategy)
+        include_subclasses(Cfg, converter, union_strategy=union_strategy)
 
         return converter
 
     @classmethod
     def fromdict(cls, d, use_converter: bool = True):
         if use_converter:
-            return Cfg.get_converter().structure(d, cls)
+            converter = Cfg.get_converter()
+            return converter.structure(d, cls)
 
         return cattrs.structure(d, cls)
 
     def asdict(self):
-        d = Cfg.get_converter().unstructure(self)
+        converter = Cfg.get_converter()
+        d = converter.unstructure(self)
         return d
 
     def astuple(self):
