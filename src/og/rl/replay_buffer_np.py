@@ -41,7 +41,7 @@ class ReplayBufferNp(struct.PyTreeNode):
         self.is_full[...] = self.size == self.capacity
         return self
 
-    def push_batch(self, b_item: BItem, batch_size: int | None = None) -> Self:
+    def push_batch_slow(self, b_item: BItem, batch_size: int | None = None) -> Self:
         if batch_size is None:
             batch_size = tree_len(b_item)
 
@@ -52,23 +52,23 @@ class ReplayBufferNp(struct.PyTreeNode):
 
         return self
 
-    # def push_batch(self, b_item: BItem, batch_size: int | None = None) -> Self:
-    #     def push_fn(data, arr):
-    #         data[self.head : self.head + size1] = arr[:size1]
-    #         data[:size2] = arr[size1:]
-    #
-    #     if batch_size is None:
-    #         batch_size = tree_len(b_item)
-    #
-    #     # size2 is the number of items we wrap around from the start.
-    #     size1 = min(batch_size, self.capacity - self.head)
-    #     size2 = batch_size - size1
-    #     jax.tree_map(push_fn, self.data, b_item)
-    #
-    #     self.head[...] = (self.head + batch_size) % self.capacity
-    #     self.size[...] = self.capacity if self.is_full else min(self.size + batch_size, self.capacity)
-    #     self.is_full[...] = self.size == self.capacity
-    #     return self
+    def push_batch(self, b_item: BItem, batch_size: int | None = None) -> Self:
+        def push_fn(data, arr):
+            data[self.head : self.head + size1] = arr[:size1]
+            data[:size2] = arr[size1:]
+
+        if batch_size is None:
+            batch_size = tree_len(b_item)
+
+        # size2 is the number of items we wrap around from the start.
+        size1 = min(batch_size, self.capacity - self.head)
+        size2 = batch_size - size1
+        jax.tree_map(push_fn, self.data, b_item)
+
+        self.head[...] = (self.head + batch_size) % self.capacity
+        self.size[...] = self.capacity if self.is_full else min(self.size + batch_size, self.capacity)
+        self.is_full[...] = self.size == self.capacity
+        return self
 
     def get_at_index(self, idx: int | IntScalar) -> Item:
         if np.any(idx >= self.size):

@@ -29,14 +29,14 @@ class Cfg:
         return converter
 
     @classmethod
-    def fromdict(cls, d, use_converter: bool = True):
+    def fromdict(cls, d: dict, use_converter: bool = True):
         if use_converter:
             converter = Cfg.get_converter()
             return converter.structure(d, cls)
 
         return cattrs.structure(d, cls)
 
-    def asdict(self):
+    def asdict(self) -> dict:
         converter = Cfg.get_converter()
         d = converter.unstructure(self)
         return d
