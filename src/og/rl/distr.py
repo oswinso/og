@@ -55,7 +55,33 @@ def midpoint_to_endpoints(n_midpoints: Float[Arr, "n"]) -> Float[Arr, "n+1"]:
     return np1_endpoints
 
 
-def categorical_cvar(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"]) -> FloatScalar:
+def categorical_cvar_cvxcomb(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"]) -> FloatScalar:
+    """Calculate CVaR of categorical distribution using the convex combination formula."""
+    (n,) = n_zp.shape
+
+    # 1: Compute the alpha-quantile.
+    n_probs_cumsum = jnp.cumsum(n_probs)
+    #     [ 0.0, 0.0, 0.5, 1.0 ]
+    #     left: Returns 0 for (-∞, 0], 2 for (0, 0.5], 3 for (0.5, 1.0], 4 for (1.0, ∞)
+    #     right: Returns 0 for (-∞, 0), 2 for [0, 0.5), 3 for [0.5, 1.0), 4 for [1.0, ∞)
+    idx = jnp.searchsorted(n_probs_cumsum, alpha, side="right")
+    VaR = jnp.array(n_zp)[idx]
+    cdf_VaR = n_probs_cumsum[idx]
+
+    lambd = (cdf_VaR - alpha) / (1 - alpha)
+
+    # 2: Compute the "strict" CVaR^+.
+    n_probs_cond = jnp.where(jnp.arange(n) > idx, n_probs, 0.0)
+    sum_n_probs_cond = jnp.sum(n_probs_cond)
+    cond_expectation_denom_recip = jnp.where(sum_n_probs_cond > 0, 1 / sum_n_probs_cond, 0.0)
+    CVaR_plus = jnp.dot(n_zp, n_probs_cond) * cond_expectation_denom_recip
+
+    # 3: Compute CVaR using convex combination of VaR and CVaR^+.
+    CVaR = lambd * VaR + (1 - lambd) * CVaR_plus
+    return CVaR
+
+
+def categorical_cvar_unif(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"]) -> FloatScalar:
     """Compute the CVaR of a categorical distribution."""
     (n,) = n_zp.shape
 
