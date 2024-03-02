@@ -1,7 +1,8 @@
+import ipdb
 import jax.numpy as jnp
 from jaxtyping import Float
 
-from og.jax_types import Arr
+from og.jax_types import Arr, FloatScalar
 
 
 def categorical_l2_project(n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"], m_zq: Float[Arr, "m"]) -> Float[Arr, "m"]:
@@ -36,3 +37,55 @@ def categorical_l2_project(n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"], m_zq
     mn_delta_hat = (mn_d_sign * mn_delta_qp * mo_dpos) - ((1.0 - mn_d_sign) * mn_delta_qp * mo_dneg)
     m_probs = jnp.sum(jnp.clip(1.0 - mn_delta_hat, 0.0, 1.0) * on_probs, axis=1)
     return m_probs
+
+
+def midpoint_to_endpoints(n_midpoints: Float[Arr, "n"]) -> Float[Arr, "n+1"]:
+    """Converts a set of midpoints to endpoints."""
+    (n,) = n_midpoints.shape
+    assert n > 1, "There must be at least two midpoints to determine the bin sizes."
+    nm1_endpoints = (n_midpoints[1:] + n_midpoints[:-1]) / 2
+    width_first = nm1_endpoints[0] - n_midpoints[0]
+    width_last = n_midpoints[-1] - nm1_endpoints[-1]
+
+    endpoint_first = n_midpoints[0] - width_first
+    endpoint_last = n_midpoints[-1] + width_last
+
+    np1_endpoints = jnp.concatenate([jnp.array([endpoint_first]), nm1_endpoints, jnp.array([endpoint_last])], axis=0)
+    assert np1_endpoints.shape == (n + 1,)
+    return np1_endpoints
+
+
+def categorical_cvar(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"]) -> FloatScalar:
+    """Compute the CVaR of a categorical distribution."""
+    (n,) = n_zp.shape
+
+    # 1: Compute the alpha-quantile.
+    n_probs_cumsum = jnp.cumsum(n_probs)
+    #     [ 0.0, 0.0, 0.5, 1.0 ]
+    #     left: Returns 0 for (-∞, 0], 2 for (0, 0.5], 3 for (0.5, 1.0], 4 for (1.0, ∞)
+    #     right: Returns 0 for (-∞, 0), 2 for [0, 0.5), 3 for [0.5, 1.0), 4 for [1.0, ∞)
+    idx = jnp.searchsorted(n_probs_cumsum, alpha, side="right")
+
+    # If idx = 0, then the probability remaining in this bin is alpha.
+    p_prev = jnp.where(idx > 0, n_probs_cumsum[idx - 1], 0.0)
+
+    # 2: Compute the probability for each bin being greater than the alpha-quantile.
+    n_cond_probs = jnp.where(jnp.arange(n) > idx, n_probs, 0.0)
+
+    np1_endpoints = jnp.array(midpoint_to_endpoints(n_zp))
+    bin_L, bin_R = np1_endpoints[idx], np1_endpoints[idx + 1]
+
+    prob_bin = jnp.array(n_probs)[idx]
+    prob_bin_recip = jnp.where(prob_bin > 0, 1.0 / prob_bin, 0.0)
+    p_bin_less = alpha - p_prev
+    p_bin_greater = prob_bin - p_bin_less
+    frac_bin_less = p_bin_less * prob_bin_recip
+
+    VaR = (1 - frac_bin_less) * bin_L + frac_bin_less * bin_R
+    bin_mean = (VaR + bin_R) / 2
+
+    # 3: Compute the CVaR.
+    cond_mean = jnp.dot(n_zp, n_cond_probs) + p_bin_greater * bin_mean
+    CVaR = cond_mean / (1 - alpha)
+
+    return CVaR
