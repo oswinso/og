@@ -55,6 +55,12 @@ def midpoint_to_endpoints(n_midpoints: Float[Arr, "n"]) -> Float[Arr, "n+1"]:
     return np1_endpoints
 
 
+def sample_cvar_cvxcomb(alpha: FloatScalar, n_zp: Float[Arr, "n"]) -> FloatScalar:
+    (n,) = n_zp.shape
+    n_probs = jnp.full(n, 1 / n)
+    return categorical_cvar_cvxcomb(alpha, n_zp, n_probs)
+
+
 def categorical_cvar_cvxcomb(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"]) -> FloatScalar:
     """Calculate CVaR of categorical distribution using the convex combination formula."""
     (n,) = n_zp.shape

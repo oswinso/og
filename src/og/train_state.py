@@ -28,12 +28,22 @@ class TrainState(Generic[_R], struct.PyTreeNode):
     step: int
     apply_fn: _ApplyFn = struct.field(pytree_node=False)
     params: _Params
+    batch_stats: dict
     tx: optax.GradientTransformation = struct.field(pytree_node=False)
     opt_state: optax.OptState | optax.InjectHyperparamsState
 
     def vars_dict(self, params: _Params | None = None):
         params = get_or(params, self.params)
-        return {"params": params}
+        batch_stats_dict = {}
+        if len(self.batch_stats) > 0:
+            batch_stats_dict = {"batch_stats": self.batch_stats}
+        return {"params": params} | batch_stats_dict
+
+    def apply_mut(self, *args: _P.args, **kwargs: _P.kwargs) -> _R:
+        mutable_dict = {}
+        if len(self.batch_stats) > 0:
+            mutable_dict = dict(mutable=["batch_stats"])
+        return self.apply(*args, **mutable_dict, **kwargs)
 
     def apply(self, *args: _P.args, **kwargs: _P.kwargs) -> _R:
         return self.apply_fn(self.vars_dict(), *args, **kwargs)
@@ -46,6 +56,9 @@ class TrainState(Generic[_R], struct.PyTreeNode):
         new_params = optax.apply_updates(self.params, updates)
         return self.replace(step=self.step + 1, params=new_params, opt_state=new_opt_state, **kwargs)
 
+    def set_batch_stats(self, batch_stats: dict) -> "TrainState":
+        return self.replace(batch_stats=batch_stats)
+
     @property
     def lr(self) -> FloatScalar:
         hyperparams = self.opt_state.hyperparams
@@ -56,15 +69,24 @@ class TrainState(Generic[_R], struct.PyTreeNode):
         raise KeyError(f"Couldn't find lr key in hyperparams! keys: {hyperparams.keys()}")
 
     @classmethod
-    def create(cls, apply_fn: _ApplyFn, params: _Params, tx: optax.GradientTransformation, **kwargs) -> "TrainState":
+    def create(
+        cls,
+        apply_fn: _ApplyFn,
+        params: _Params,
+        tx: optax.GradientTransformation,
+        batch_stats: dict | None = None,
+        **kwargs,
+    ) -> "TrainState":
         """Creates a new instance with `step=0` and initialized `opt_state`."""
         opt_state = None
         if tx is not None:
             opt_state = tx.init(params)
+        batch_stats = get_or(batch_stats, {})
         return cls(
             step=0,
             apply_fn=apply_fn,
             params=params,
+            batch_stats=batch_stats,
             tx=tx,
             opt_state=opt_state,
             **kwargs,
@@ -74,9 +96,10 @@ class TrainState(Generic[_R], struct.PyTreeNode):
     def create_from_def(
         cls, key: PRNGKey, net_def: nn.Module, init_args: tuple, tx: optax.GradientTransformation, **kwargs
     ) -> "TrainState":
-        variables = net_def.init(key, *init_args)
+        variables: dict = net_def.init(key, *init_args)
         params = variables["params"]
-        return cls.create(net_def.apply, params, tx, **kwargs)
+        batch_stats = variables.get("batch_stats", {})
+        return cls.create(net_def.apply, params, tx, batch_stats=batch_stats, **kwargs)
 
     def strip(self) -> "TrainState":
         """Remove tx and opt_state."""

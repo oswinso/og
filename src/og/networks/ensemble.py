@@ -16,7 +16,7 @@ class Ensemble(nn.Module):
     def __call__(self, *args, in_axes=None):
         ensemble = nn.vmap(
             self.net_cls,
-            variable_axes={"params": 0},
+            variable_axes={"params": 0, "batch_stats": 0},
             split_rngs={"params": True, "dropout": True},
             in_axes=in_axes,
             out_axes=0,
