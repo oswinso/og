@@ -6,7 +6,7 @@ from jaxtyping import Array, Bool, Float, Int, Shaped, PRNGKeyArray
 Arr = Union[np.ndarray, Array]
 
 AnyShaped = Shaped[Arr, "*"]
-AnyFloat = Float[Arr, "*"]
+AnyFloat = float | Float[Arr, "*"]
 Shape = Union[tuple[int, ...], list[int]]
 
 FloatScalar = float | Float[Arr, ""]
