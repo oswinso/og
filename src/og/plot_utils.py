@@ -149,6 +149,10 @@ def axvline_labeled(
     axvline_kwargs = get_or(axvline_kwargs, {})
     text_kwargs = get_or(text_kwargs, {})
 
+    color = "0.2"
+    axvline_kwargs = {"color": color} | axvline_kwargs
+    text_kwargs = {"color": color, "ha": "center"} | text_kwargs
+
     # trans = ax.get_xaxis_transform()
 
     line = ax.axvline(xpos, **axvline_kwargs)

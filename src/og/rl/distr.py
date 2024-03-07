@@ -1,4 +1,5 @@
 import ipdb
+import jax.nn as jnn
 import jax.numpy as jnp
 from jaxtyping import Float
 
@@ -121,3 +122,12 @@ def categorical_cvar_unif(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Fl
     CVaR = cond_mean / (1 - alpha)
 
     return CVaR
+
+
+def categorical_kl(p: Float[Arr, "n"], q_logit: Float[Arr, "n"]) -> FloatScalar:
+    """Compute KL( P || Q )."""
+    logq = jnn.log_softmax(q_logit)
+    logp = jnp.log(p)
+    # Prevent 0 * log(0) = nan.
+    logp_safe = jnp.where(p > 0, logp, 0.0)
+    return jnp.sum(p * (logp_safe - logq))
