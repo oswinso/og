@@ -48,10 +48,8 @@ class EzManager:
         self.mngr.save(step, args=ocp.args.StandardSave(items))
 
 
-def get_ckpt_manager(
-    ckpt_dir: pathlib.Path, item_names: list[str] | None, max_to_keep: int = 100
-):
-    options = ocp.CheckpointManagerOptions(max_to_keep=max_to_keep)
+def get_ckpt_manager(ckpt_dir: pathlib.Path, item_names: list[str] | None, max_to_keep: int = 100):
+    options = ocp.CheckpointManagerOptions(max_to_keep=max_to_keep, step_format_fixed_length=5)
     mngr = ocp.CheckpointManager(ckpt_dir, item_names=item_names, options=options)
     return EzManager(mngr)
 

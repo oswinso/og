@@ -95,7 +95,7 @@ class TrainState(Generic[_R], struct.PyTreeNode):
         return self.replace(tx=None, opt_state=None)
 
 
-class BNTrainState(TrainState):
+class BNTrainState(TrainState[_R]):
     """To avoid breaking everything, make a subclass."""
 
     batch_stats: dict
@@ -107,11 +107,21 @@ class BNTrainState(TrainState):
             batch_stats_dict = {"batch_stats": self.batch_stats}
         return {"params": params} | batch_stats_dict
 
-    def apply_mut(self, *args: _P.args, **kwargs: _P.kwargs) -> _R:
+    def mut_dict(self):
         mutable_dict = {}
         if len(self.batch_stats) > 0:
             mutable_dict = dict(mutable=["batch_stats"])
-        return self.apply(*args, **mutable_dict, **kwargs)
+        return mutable_dict
+
+    def apply_mut(self, *args: _P.args, **kwargs: _P.kwargs) -> tuple[_R, dict]:
+        return self.apply(*args, **self.mut_dict(), **kwargs)
+
+    def apply_with_run_avg(self, *args: _P.args, **kwargs: _P.kwargs) -> _R:
+        use_run_avg = True
+        return self.apply_fn(self.vars_dict(), *args, use_run_avg, **kwargs)
+
+    def apply_mut_with(self, *args: _P.args, params: _Params, **kwargs: _P.kwargs) -> tuple[_R, dict]:
+        return self.apply_fn(self.vars_dict(params), *args, **self.mut_dict(), **kwargs)
 
     @classmethod
     def create(
