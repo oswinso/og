@@ -4,6 +4,7 @@ import equinox as eqx
 import ipdb
 import jax.nn as jnn
 import jax.numpy as jnp
+import numpy as np
 from jaxtyping import Float
 
 from og.jax_types import Arr, FloatScalar
@@ -65,6 +66,34 @@ def sample_cvar_cvxcomb(alpha: FloatScalar, n_zp: Float[Arr, "n"]) -> FloatScala
     return categorical_cvar_cvxcomb(alpha, n_zp, n_probs)
 
 
+def categorical_var_cvxcomb(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"]) -> FloatScalar:
+    """Calculate VaR of categorical distribution in the same way as for convex combination CVaR."""
+    (n,) = n_zp.shape
+
+    # 1: Compute the alpha-quantile.
+    n_probs_cumsum = jnp.cumsum(n_probs)
+    #     [ 0.0, 0.0, 0.5, 1.0 ]
+    #     left: Returns 0 for (-∞, 0], 2 for (0, 0.5], 3 for (0.5, 1.0], 4 for (1.0, ∞)
+    #     right: Returns 0 for (-∞, 0), 2 for [0, 0.5), 3 for [0.5, 1.0), 4 for [1.0, ∞)
+    idx = jnp.searchsorted(n_probs_cumsum, alpha, side="right")
+    VaR = jnp.array(n_zp)[idx]
+    return VaR
+
+
+def categorical_var_cvxcomb_np(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"]) -> FloatScalar:
+    """Calculate VaR of categorical distribution in the same way as for convex combination CVaR."""
+    (n,) = n_zp.shape
+
+    # 1: Compute the alpha-quantile.
+    n_probs_cumsum = np.cumsum(n_probs)
+    #     [ 0.0, 0.0, 0.5, 1.0 ]
+    #     left: Returns 0 for (-∞, 0], 2 for (0, 0.5], 3 for (0.5, 1.0], 4 for (1.0, ∞)
+    #     right: Returns 0 for (-∞, 0), 2 for [0, 0.5), 3 for [0.5, 1.0), 4 for [1.0, ∞)
+    idx = np.searchsorted(n_probs_cumsum, alpha, side="right")
+    VaR = np.array(n_zp)[idx]
+    return VaR
+
+
 def categorical_cvar_cvxcomb(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"]) -> FloatScalar:
     """Calculate CVaR of categorical distribution using the convex combination formula."""
     (n,) = n_zp.shape
@@ -85,6 +114,32 @@ def categorical_cvar_cvxcomb(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs:
     sum_n_probs_cond = jnp.sum(n_probs_cond)
     cond_expectation_denom_recip = jnp.where(sum_n_probs_cond > 0, 1 / sum_n_probs_cond, 0.0)
     CVaR_plus = jnp.dot(n_zp, n_probs_cond) * cond_expectation_denom_recip
+
+    # 3: Compute CVaR using convex combination of VaR and CVaR^+.
+    CVaR = lambd * VaR + (1 - lambd) * CVaR_plus
+    return CVaR
+
+
+def categorical_cvar_cvxcomb_np(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"]) -> FloatScalar:
+    """Calculate CVaR of categorical distribution using the convex combination formula."""
+    (n,) = n_zp.shape
+
+    # 1: Compute the alpha-quantile.
+    n_probs_cumsum = np.cumsum(n_probs)
+    #     [ 0.0, 0.0, 0.5, 1.0 ]
+    #     left: Returns 0 for (-∞, 0], 2 for (0, 0.5], 3 for (0.5, 1.0], 4 for (1.0, ∞)
+    #     right: Returns 0 for (-∞, 0), 2 for [0, 0.5), 3 for [0.5, 1.0), 4 for [1.0, ∞)
+    idx = np.searchsorted(n_probs_cumsum, alpha, side="right")
+    VaR = np.array(n_zp)[idx]
+    cdf_VaR = n_probs_cumsum[idx]
+
+    lambd = (cdf_VaR - alpha) / (1 - alpha)
+
+    # 2: Compute the "strict" CVaR^+.
+    n_probs_cond = np.where(np.arange(n) > idx, n_probs, 0.0)
+    sum_n_probs_cond = np.sum(n_probs_cond)
+    cond_expectation_denom_recip = np.where(sum_n_probs_cond > 0, 1 / sum_n_probs_cond, 0.0)
+    CVaR_plus = np.dot(n_zp, n_probs_cond) * cond_expectation_denom_recip
 
     # 3: Compute CVaR using convex combination of VaR and CVaR^+.
     CVaR = lambd * VaR + (1 - lambd) * CVaR_plus
