@@ -71,6 +71,16 @@ def tree_cat(trees: list[_PyTree], axis: int = 0) -> _PyTree:
     return jtu.tree_map(tree_cat_inner, *trees)
 
 
+def tree_split(tree: _PyTree, sections: int, axis: int = 0) -> list[_PyTree]:
+    def get_idx(ii: int):
+        def tree_split_inner(arr):
+            return np.split(arr, sections, axis=axis)[ii]
+
+        return jtu.tree_map(tree_split_inner, tree)
+
+    return [get_idx(ii) for ii in range(sections)]
+
+
 def tree_where(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
     def tree_where_inner(x, y):
         return jp.where(cond, x, y)

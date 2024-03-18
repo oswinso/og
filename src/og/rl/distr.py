@@ -1,3 +1,6 @@
+from typing import Sequence
+
+import equinox as eqx
 import ipdb
 import jax.nn as jnn
 import jax.numpy as jnp
@@ -124,10 +127,30 @@ def categorical_cvar_unif(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Fl
     return CVaR
 
 
-def categorical_kl(p: Float[Arr, "n"], q_logit: Float[Arr, "n"]) -> FloatScalar:
+def categorical_crossentropy(p: Float[Arr, "n"], q_logit: Float[Arr, "n"], axis: int | None | Sequence[int] = None):
+    """Compute the cross-entropy between two categorical distributions."""
+    logq = jnn.log_softmax(q_logit)
+    ce_out = -jnp.sum(p * logq, axis=axis)
+    return ce_out
+
+
+def categorical_entropy(p: Float[Arr, "n"], axis: int | None | Sequence[int] = None) -> FloatScalar:
+    """Compute the entropy of a categorical distribution."""
+    logp = jnp.log(p)
+    # Prevent 0 * log(0) = nan.
+    logp_safe = jnp.where(p > 0, logp, 0.0)
+    entropy_out = -jnp.sum(p * logp_safe, axis=axis)
+    return entropy_out
+
+
+def categorical_kl(
+    p: Float[Arr, "n"], q_logit: Float[Arr, "n"], axis: int | None | Sequence[int] = None
+) -> FloatScalar:
     """Compute KL( P || Q )."""
     logq = jnn.log_softmax(q_logit)
     logp = jnp.log(p)
     # Prevent 0 * log(0) = nan.
     logp_safe = jnp.where(p > 0, logp, 0.0)
-    return jnp.sum(p * (logp_safe - logq))
+    kl_out = jnp.sum(p * (logp_safe - logq), axis=axis)
+    kl_out = eqx.error_if(kl_out, kl_out < 0, "KL divergence is negative.")
+    return kl_out
