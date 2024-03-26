@@ -3,6 +3,7 @@ from typing import Callable, Concatenate, Generic, ParamSpec, TypeVar
 import flax.linen as nn
 import optax
 from flax import struct
+from optax._src.wrappers import ApplyIfFiniteState
 
 from og.jax_types import FloatScalar
 from og.none import get_or
@@ -60,6 +61,12 @@ class TrainState(Generic[_R], struct.PyTreeNode):
             if key in hyperparams:
                 return hyperparams[key]
         raise KeyError(f"Couldn't find lr key in hyperparams! keys: {hyperparams.keys()}")
+
+    @property
+    def total_notfinite(self) -> int:
+        inner_state = self.opt_state.inner_state
+        assert isinstance(inner_state, ApplyIfFiniteState)
+        return inner_state.total_notfinite
 
     @classmethod
     def create(

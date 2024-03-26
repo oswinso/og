@@ -2,12 +2,14 @@ from typing import Sequence
 
 import equinox as eqx
 import ipdb
+import jax.debug as jd
 import jax.nn as jnn
 import jax.numpy as jnp
 import numpy as np
 from jaxtyping import Float
 
 from og.jax_types import Arr, FloatScalar
+from og.nan_utils import backward_nan
 
 
 def categorical_l2_project(n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"], m_zq: Float[Arr, "m"]) -> Float[Arr, "m"]:
@@ -100,10 +102,15 @@ def categorical_cvar_cvxcomb(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs:
 
     # 1: Compute the alpha-quantile.
     n_probs_cumsum = jnp.cumsum(n_probs)
+
     #     [ 0.0, 0.0, 0.5, 1.0 ]
     #     left: Returns 0 for (-∞, 0], 2 for (0, 0.5], 3 for (0.5, 1.0], 4 for (1.0, ∞)
     #     right: Returns 0 for (-∞, 0), 2 for [0, 0.5), 3 for [0.5, 1.0), 4 for [1.0, ∞)
     idx = jnp.searchsorted(n_probs_cumsum, alpha, side="right")
+
+    idx = eqx.error_if(idx, idx == len(n_zp), "idx == len(n_zp)!")
+    idx = eqx.error_if(idx, idx < 0, "idx < 0!")
+
     VaR = jnp.array(n_zp)[idx]
     cdf_VaR = n_probs_cumsum[idx]
 
@@ -112,8 +119,30 @@ def categorical_cvar_cvxcomb(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs:
     # 2: Compute the "strict" CVaR^+.
     n_probs_cond = jnp.where(jnp.arange(n) > idx, n_probs, 0.0)
     sum_n_probs_cond = jnp.sum(n_probs_cond)
-    cond_expectation_denom_recip = jnp.where(sum_n_probs_cond > 0, 1 / sum_n_probs_cond, 0.0)
-    CVaR_plus = jnp.dot(n_zp, n_probs_cond) * cond_expectation_denom_recip
+    # sum_n_probs_cond = backward_nan(sum_n_probs_cond, "sum_n_probs_cond")
+
+    # jd.print("n_probs_cond: {}", n_probs_cond)
+    # jd.print("n_probs_cond_sum: {}", sum_n_probs_cond)
+
+    # IMPORTANT: Double where to avoid NaN in grad.
+    # However, if the sum is tiny (e.g., 1e-22), then the reciprocal will be huge (1e22).
+    # This leads to NaN / infs for the gradient, since the gradient will involve the square of the reciprocal (1e44)
+    recip_eps = 1e-6
+    sum_n_probs_cond_safe = jnp.where(sum_n_probs_cond > recip_eps, sum_n_probs_cond, 1.0)
+    # sum_n_probs_cond_safe = backward_nan(sum_n_probs_cond_safe, "sum_n_probs_cond")
+
+    cond_expectation_denom_recip = jnp.where(sum_n_probs_cond_safe > recip_eps, 1 / sum_n_probs_cond_safe, 1.0)
+
+    # n_probs_cond = backward_nan(n_probs_cond, "n_probs_cond")
+    # cond_expectation_denom_recip = backward_nan(cond_expectation_denom_recip, "cond_expectation_denom_recip")
+
+    n_probs_cond_norm = n_probs_cond * cond_expectation_denom_recip
+    # n_probs_cond_norm = backward_nan(n_probs_cond_norm, "n_probs_cond_norm")
+
+    # CVaR_plus = jnp.dot(n_zp, n_probs_cond) * cond_expectation_denom_recip
+    CVaR_plus = jnp.dot(n_zp, n_probs_cond_norm)
+
+    # CVaR_plus = backward_nan(CVaR_plus, "CVaR_plus")
 
     # 3: Compute CVaR using convex combination of VaR and CVaR^+.
     CVaR = lambd * VaR + (1 - lambd) * CVaR_plus

@@ -63,6 +63,15 @@ def tree_stack(trees: list[_PyTree], axis: int = 0) -> _PyTree:
     return jtu.tree_map(tree_stack_inner, *trees)
 
 
+def tree_unstack(tree: _PyTree, axis: int = 0) -> list[_PyTree]:
+    """Opposite of tree_stack. Turns a tree of arrays into a list of trees."""
+
+    def get_idx(ii: int):
+        return jtu.tree_map(lambda arr: arr[ii], tree)
+
+    return [get_idx(ii) for ii in range(tree_shape(tree, axis=axis))]
+
+
 def tree_cat(trees: list[_PyTree], axis: int = 0) -> _PyTree:
     def tree_cat_inner(*arrs):
         arrs = list(arrs)
@@ -99,3 +108,7 @@ def tree_len(tree: _PyTree) -> int:
 def tree_shape(tree: _PyTree, axis: int) -> int:
     leaves, treedef = jtu.tree_flatten(tree)
     return leaves[0].shape[axis]
+
+def tree_unduplicate(tree: _PyTree) -> _PyTree:
+    """If there are two arrays that share the same buffer, make them separate."""
+    leaves, treedef = jtu.tree_flatten_with_path(tree)

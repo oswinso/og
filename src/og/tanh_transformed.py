@@ -22,6 +22,7 @@ class TanhTransformedDistribution(tfd.TransformedDistribution):
         # Without this clip there would be NaNs in the inner tf.where and that
         # causes issues for some reasons.
         event = jnp.clip(event, -self._threshold, self._threshold)
+        self._log_prob()
         # The inverse image of {threshold} is the interval [atanh(threshold), inf]
         # which has a probability of "log_prob_right" under the given distribution.
         return jnp.where(

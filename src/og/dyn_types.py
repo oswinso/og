@@ -94,6 +94,11 @@ TBool = Bool[Arr, "T"]
 TState = Float[Arr, "T nx"]
 TControl = Float[Arr, "T nu"]
 
+QpFloat = Float[Arr, "nq"]
+QvFloat = Float[Arr, "nv"]
+
+HWCImage = Float[Arr, "h w c"]
+
 
 class DetPolicy(Protocol):
     def __call__(self, state: State) -> Control:
