@@ -149,6 +149,41 @@ def categorical_cvar_cvxcomb(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs:
     return CVaR
 
 
+def categorical_cvar_cvxcomb_logp(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_logp: Float[Arr, "n"]) -> FloatScalar:
+    """Calculate CVaR of categorical distribution using the convex combination formula. Take log probs as input."""
+    (n,) = n_zp.shape
+
+    # -----------------------------------------------------
+    # 1: Compute the alpha-quantile.
+    n_probs = jnp.exp(n_logp)
+    n_probs_cumsum = jnp.cumsum(n_probs)
+
+    #     [ 0.0, 0.0, 0.5, 1.0 ]
+    #     left: Returns 0 for (-∞, 0], 2 for (0, 0.5], 3 for (0.5, 1.0], 4 for (1.0, ∞)
+    #     right: Returns 0 for (-∞, 0), 2 for [0, 0.5), 3 for [0.5, 1.0), 4 for [1.0, ∞)
+    idx = jnp.searchsorted(n_probs_cumsum, alpha, side="right")
+
+    idx = eqx.error_if(idx, idx == len(n_zp), "idx == len(n_zp)!")
+    idx = eqx.error_if(idx, idx < 0, "idx < 0!")
+
+    VaR = jnp.array(n_zp)[idx]
+    cdf_VaR = n_probs_cumsum[idx]
+    lambd = (cdf_VaR - alpha) / (1 - alpha)
+
+    # -----------------------------------------------------
+    # 2: Compute the "strict" CVaR^+.
+    #        Compute the conditional probability.
+    big_neg_num = -100.0
+    n_logp_cond_unnorm = jnp.where(jnp.arange(n) > idx, n_logp, big_neg_num)
+    n_logp_cond_norm = n_logp_cond_unnorm - jnn.logsumexp(n_logp_cond_unnorm)
+    n_probs_cond = jnp.exp(n_logp_cond_norm)
+    CVaR_plus = jnp.dot(n_zp, n_probs_cond)
+
+    # 3: Compute CVaR using convex combination of VaR and CVaR^+.
+    CVaR = lambd * VaR + (1 - lambd) * CVaR_plus
+    return CVaR
+
+
 def categorical_cvar_cvxcomb_np(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"]) -> FloatScalar:
     """Calculate CVaR of categorical distribution using the convex combination formula."""
     (n,) = n_zp.shape

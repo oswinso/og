@@ -2,7 +2,13 @@ import ipdb
 import jax
 import numpy as np
 
-from og.rl.distr import categorical_cvar_cvxcomb, categorical_cvar_unif, categorical_l2_project, midpoint_to_endpoints
+from og.rl.distr import (
+    categorical_cvar_cvxcomb,
+    categorical_cvar_cvxcomb_logp,
+    categorical_cvar_unif,
+    categorical_l2_project,
+    midpoint_to_endpoints,
+)
 
 
 def test_categorical_l2_project():
@@ -98,8 +104,10 @@ def test_categorical_cvar_cvxcomb():
 
         mean = np.dot(n_zp, n_probs)
         mean_cvar = categorical_cvar_cvxcomb(0.0, n_zp, n_probs)
+        mean_cvar2 = categorical_cvar_cvxcomb_logp(0.0, n_zp, np.log(n_probs))
 
         np.testing.assert_allclose(mean, mean_cvar)
+        np.testing.assert_allclose(mean_cvar, mean_cvar2)
 
 
 def compare_cvars():
@@ -119,6 +127,10 @@ def compare_cvars():
     b_cvars_unif = np.array(jax.vmap(lambda alpha: categorical_cvar_unif(alpha, n_zp, n_probs))(b_alphas))
     b_cvars_cvxcomb = np.array(jax.vmap(lambda alpha: categorical_cvar_cvxcomb(alpha, n_zp, n_probs))(b_alphas))
 
+    b_cvars_cvxcomb_logp = np.array(
+        jax.vmap(lambda alpha: categorical_cvar_cvxcomb_logp(alpha, n_zp, np.log(n_probs + 1e-100)))(b_alphas)
+    )
+
     np1_prob_cumsum = np.concatenate([np.array([0.0]), np.cumsum(n_probs)])
     np1_endpoints = np.array(midpoint_to_endpoints(n_zp))
 
@@ -134,6 +146,7 @@ def compare_cvars():
 
     axes[2].plot(b_alphas, b_cvars_unif, marker="o", lw=0.4, alpha=0.5, label="Uniform")
     axes[2].plot(b_alphas, b_cvars_cvxcomb, marker="o", lw=0.4, alpha=0.5, label="Convex Combination")
+    axes[2].plot(b_alphas, b_cvars_cvxcomb_logp, marker="o", lw=0.4, alpha=0.5, label="Convex Combination (logp)")
     axes[2].legend()
     plt.show()
 
