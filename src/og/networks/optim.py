@@ -28,6 +28,15 @@ def get_default_tx(
     lr: optax.Schedule | FloatScalar,
     wd: optax.Schedule | FloatScalar = 1e-4,
     eps: FloatScalar = 1e-5,
+    b1: float = 0.9,
+    b2: float = 0.999,
     hide_nans: bool = True,
 ) -> optax.GradientTransformation:
-    return optax.inject_hyperparams(ft.partial(optim, hide_nans=hide_nans))(learning_rate=lr, wd=wd, eps=eps)
+    def optim_(learning_rate: float, wd: float, eps: float, hide_nans: bool):
+        opt = optax.adamw(learning_rate, b1=b1, b2=b2, eps=eps, weight_decay=wd, mask=wd_mask)
+        if hide_nans:
+            logger.info("Using apply_if_finite in optimizer to hide NaNs!")
+            opt = optax.apply_if_finite(opt, 500)
+        return opt
+
+    return optax.inject_hyperparams(ft.partial(optim_, hide_nans=hide_nans))(learning_rate=lr, wd=wd, eps=eps)
