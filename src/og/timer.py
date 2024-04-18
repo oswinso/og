@@ -15,6 +15,8 @@ class Timer:
         self._parent = parent
         self._count = 0
 
+        self.started = False
+
     @staticmethod
     def get_active() -> "Timer":
         if len(_active_timers) > 0:
@@ -42,6 +44,7 @@ class Timer:
             return result
 
     def start(self):
+        assert not self.started
         self._count += 1
         self._start_time = self._get_time()
         # If we aren't a child of the active timer, then add us to the active timer's children.
@@ -52,16 +55,18 @@ class Timer:
             self._parent = _active_timers[-1]
 
         _active_timers.append(self)
+        self.started = True
         return self
 
     def stop(self):
+        assert self.started
         self.elapsed += self._get_time() - self._start_time
         # If we are the active timer, then set the active timer to our parent.
         global _active_timers
         if _active_timers[-1] is self:
             _active_timers.pop()
         self._parent = None
-
+        self.started = False
         return self
 
     def print_results(self):
