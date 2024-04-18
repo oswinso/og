@@ -7,6 +7,7 @@ import jax.nn as jnn
 import jax.numpy as jnp
 import numpy as np
 from jaxtyping import Float
+from loguru import logger
 
 from og.jax_types import Arr, FloatScalar
 from og.nan_utils import backward_nan
@@ -99,6 +100,11 @@ def categorical_var_cvxcomb_np(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_prob
 def categorical_cvar_cvxcomb(alpha: FloatScalar, n_zp: Float[Arr, "n"], n_probs: Float[Arr, "n"]) -> FloatScalar:
     """Calculate CVaR of categorical distribution using the convex combination formula."""
     (n,) = n_zp.shape
+
+    if alpha == 0.0:
+        # Return the mean.
+        logger.info("alpha=0, so returning mean!")
+        return jnp.dot(n_zp, n_probs)
 
     # 1: Compute the alpha-quantile.
     n_probs_cumsum = jnp.cumsum(n_probs)
