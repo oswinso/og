@@ -26,9 +26,9 @@ def reorder_wandb_name(wandb_name: str = None, num_width: int = 4, max_word_len:
 
     # They changed the name format to maybe have 3 words (dazzling-candy-heart-14).
     # In this case, just keep the first two.
-    if len(name_parts) == 4:
-        name_parts = [name_parts[0], name_parts[1], name_parts[3]]
-    assert len(name_parts) == 3
+    if len(name_parts) > 3:
+        name_parts = [name_parts[0], name_parts[1], name_parts[-1]]
+    # assert len(name_parts) == 3
     word0, word1, num = name_parts
     # If words are too long, then truncate them.
     word0, word1 = word0[:max_word_len], word1[:max_word_len]
