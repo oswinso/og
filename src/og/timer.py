@@ -30,6 +30,7 @@ class Timer:
         self._children = {}
         self._parent = parent
         self._count = 0
+        self.started = False
 
         # Ignore the first 5 times.
         self.ignore_k = 10
@@ -94,6 +95,8 @@ class Timer:
         return self
 
     def stop(self):
+        assert self.started
+        
         if _enabled:
             # Only start counting if we are enabled.
 
