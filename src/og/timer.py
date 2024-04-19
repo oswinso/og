@@ -96,7 +96,7 @@ class Timer:
 
     def stop(self):
         assert self.started
-        
+
         if _enabled:
             # Only start counting if we are enabled.
 
