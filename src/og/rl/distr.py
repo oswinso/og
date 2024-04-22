@@ -279,3 +279,23 @@ def categorical_kl(
     kl_out = jnp.sum(p * (logp_safe - logq), axis=axis)
     kl_out = eqx.error_if(kl_out, kl_out < 0, "KL divergence is negative.")
     return kl_out
+
+
+def categorical_max(n_prob1: Float[Arr, "n"], n_prob2: Float[Arr, "n"]):
+    n, = n_prob1.shape
+    assert n_prob1.shape == n_prob2.shape == (n,)
+    # Just for notation.
+    m_prob2 = n_prob2
+
+    nm_jointprob = jnp.outer(n_prob1, m_prob2)
+
+    # Assume that the values are sorted in ascending order.
+    n_val1 = jnp.arange(n)
+    m_val2 = jnp.arange(n)
+    nm_maxval = jnp.maximum(n_val1[:, None], m_val2[None, :])
+
+    # Add the probabilities of the joint distribution that have the same maximum value. Probably a scatter.
+    n_probs = jnp.zeros(n)
+    n_probs = n_probs.at[nm_maxval].add(nm_jointprob)
+
+    return n_probs

@@ -7,6 +7,7 @@ from og.rl.distr import (
     categorical_cvar_cvxcomb_logp,
     categorical_cvar_unif,
     categorical_l2_project,
+    categorical_max,
     midpoint_to_endpoints,
 )
 
@@ -151,6 +152,17 @@ def compare_cvars():
     plt.show()
 
 
+def test_categorical_max():
+    n_prob1 = np.array([0.2, 0.3, 0.5])
+    n_prob2 = np.array([0.1, 0.2, 0.7])
+    nm_jointprob = np.outer(n_prob1, n_prob2)
+    n_prob_max = categorical_max(n_prob1, n_prob2)
+
+    print(nm_jointprob)
+    print()
+    print(n_prob_max)
+
+
 if __name__ == "__main__":
     jax.config.update("jax_enable_x64", True)
     jax.config.update("jax_platform_name", "cpu")
@@ -158,4 +170,5 @@ if __name__ == "__main__":
         # test_categorical_l2_project()
         # test_categorical_cvar_unif()
         # test_categorical_cvar_cvxcomb()
-        compare_cvars()
+        # compare_cvars()
+        test_categorical_max()
