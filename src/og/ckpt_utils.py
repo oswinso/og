@@ -44,9 +44,13 @@ class EzManager:
             args[k] = arg
 
         self.mngr.save(step, args=ocp.args.Composite(**args))
+        ckpt_path = self.mngr._get_save_directory(step, self.mngr.directory)
+        return ckpt_path
 
     def _save_ez(self, step: int, items: Any):
         self.mngr.save(step, args=ocp.args.StandardSave(items))
+        ckpt_path = self.mngr._get_save_directory(step, self.mngr.directory)
+        return ckpt_path
 
 
 def get_ckpt_manager(ckpt_dir: pathlib.Path, item_names: list[str] | None, max_to_keep: int = 100):
@@ -91,7 +95,7 @@ def load_from_ckpt(ckpt_path: pathlib.Path, item, name: str | None = None):
     for key1, v1 in keyleaves1.items():
         v2 = keyleaves2[key1]
         k_name = "/".join([str(s) for s in key1])
-        if v1.shape != v2.shape:
+        if np.asarray(v1).shape != np.asarray(v2).shape:
             raise ValueError(f"Shape mismatch for {k_name}: {v1.shape} != {v2.shape}")
 
     return ckpt_dict[name]

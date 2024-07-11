@@ -2,7 +2,6 @@ from typing import Any, Callable, Iterable, ParamSpec, Sequence, TypeVar
 
 import einops as ei
 import jax._src.dtypes
-import jax.config
 import jax.numpy as jnp
 import jax.tree_util as jtu
 import numpy as np
