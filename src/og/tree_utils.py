@@ -6,6 +6,7 @@ import jax.tree_util as jtu
 import jumpy.numpy as jp
 import numpy as np
 from jax import tree_util as jtu
+from jumpy.core import which_np
 
 from og.jax_types import Arr, Shape
 from og.jax_utils import _PyTree, concat_at_front
@@ -109,6 +110,15 @@ def tree_shape(tree: _PyTree, axis: int) -> int:
     leaves, treedef = jtu.tree_flatten(tree)
     return leaves[0].shape[axis]
 
+
 def tree_unduplicate(tree: _PyTree) -> _PyTree:
     """If there are two arrays that share the same buffer, make them separate."""
     leaves, treedef = jtu.tree_flatten_with_path(tree)
+
+
+def tree_has_nan(tree):
+    leaves, treedef = jtu.tree_flatten(tree)
+    for leaf in leaves:
+        if jp.any(which_np(leaf).isnan(leaf)):
+            return True
+    return False

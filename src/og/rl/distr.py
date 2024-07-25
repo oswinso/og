@@ -1,15 +1,16 @@
-from typing import Sequence
+from typing import Callable, Sequence
 
 import equinox as eqx
 import ipdb
 import jax.debug as jd
 import jax.nn as jnn
 import jax.numpy as jnp
+import jax.scipy.special
 import numpy as np
 from jaxtyping import Float
 from loguru import logger
 
-from og.jax_types import Arr, FloatScalar
+from og.jax_types import Arr, BFloat, FloatScalar
 from og.nan_utils import backward_nan
 
 
@@ -282,7 +283,7 @@ def categorical_kl(
 
 
 def categorical_max(n_prob1: Float[Arr, "n"], n_prob2: Float[Arr, "n"]):
-    n, = n_prob1.shape
+    (n,) = n_prob1.shape
     assert n_prob1.shape == n_prob2.shape == (n,)
     # Just for notation.
     m_prob2 = n_prob2
@@ -299,3 +300,26 @@ def categorical_max(n_prob1: Float[Arr, "n"], n_prob2: Float[Arr, "n"]):
     n_probs = n_probs.at[nm_maxval].add(nm_jointprob)
 
     return n_probs
+
+
+def hl_gauss_transform(
+    min_value: float,
+    max_value: float,
+    num_bins: int,
+    sigma: float,
+) -> tuple[Callable[[FloatScalar], BFloat], Callable[[BFloat], FloatScalar]]:
+    """Histogram loss transform for a normal distribution."""
+    bp1_support = jnp.linspace(min_value, max_value, num_bins + 1, dtype=jnp.float32)
+    b_centers = (bp1_support[:-1] + bp1_support[1:]) / 2
+
+    def transform_to_probs(target: FloatScalar) -> BFloat:
+        bp1_cdf_evals = jax.scipy.special.erf((bp1_support - target) / (jnp.sqrt(2) * sigma))
+        # Integral of prob mass that is counted, so we can normalize out the prob mass that is cut off.
+        z = bp1_cdf_evals[-1] - bp1_cdf_evals[0]
+        b_bin_probs = bp1_cdf_evals[1:] - bp1_cdf_evals[:-1]
+        return b_bin_probs / z
+
+    def transform_from_probs(b_probs: BFloat) -> FloatScalar:
+        return jnp.sum(b_probs * b_centers)
+
+    return transform_to_probs, transform_from_probs
