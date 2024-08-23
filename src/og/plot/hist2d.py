@@ -1,11 +1,19 @@
-from typing import Sequence
+from typing import Sequence, Literal
 
 import ipdb
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def hist2d(b_x: np.ndarray, b_y: np.ndarray, bins: int | Sequence[np.ndarray], ax: plt.Axes, **kwargs):
+def hist2d(
+    b_x: np.ndarray,
+    b_y: np.ndarray,
+    bins: int | Sequence[np.ndarray],
+    ax: plt.Axes,
+    b_val: np.ndarray | None = None,
+    val_reduction: Literal["mean", "max", "min"] = None,
+    **kwargs
+):
     D = 2
 
     b_sample = np.stack([b_x, b_y], axis=1)
@@ -52,15 +60,38 @@ def hist2d(b_x: np.ndarray, b_y: np.ndarray, bins: int | Sequence[np.ndarray], a
         Ncount[ii][on_edge] -= 1
 
     # (b, ). Index to the flattened array. Original array has shape nbin.
-    b_xy = np.ravel_multi_index(Ncount, nbin)
+    n_xy = np.ravel_multi_index(Ncount, nbin)
 
     minlength = nbin.prod()
-
     # Compute the number of repetitions in xy and assign it to the flattened histmat.
-    b_hist = np.bincount(b_xy, weights=None, minlength=minlength)
+    n_hist = np.bincount(n_xy, weights=None, minlength=minlength)
+    #    If we want to divide, don't divide by zero.
+    n_hist_safe = np.where(n_hist > 0, n_hist, 1)
+
+    if b_val is None:
+        # We are computing the density.
+        n_plotval = n_hist
+    else:
+        match val_reduction:
+            case "mean":
+                n_valsum = np.zeros(minlength, dtype=np.float32)
+                np.add.at(n_valsum, n_xy, b_val)
+                n_val = n_valsum / n_hist_safe
+            case "max":
+                n_valmax = np.full(minlength, -np.inf, dtype=b_val.dtype)
+                np.maximum.at(n_valmax, n_xy, b_val)
+                n_val = n_valmax
+            case "min":
+                n_valmin = np.full(minlength, np.inf, dtype=b_val.dtype)
+                np.minimum.at(n_valmin, n_xy, b_val)
+                n_val = n_valmin
+            case _:
+                raise ValueError("Invalid value for `val_reduction` {}".format(val_reduction))
+
+        n_plotval = np.ma.array(n_val, mask=n_hist == 0)
 
     # Shape into a proper matrix
-    bb_hist = b_hist.reshape(nbin)
+    bb_hist = n_plotval.reshape(nbin)
 
     # Remove outliers (indices 0 and -1 for each dimension).
     core = D * (slice(1, -1),)
