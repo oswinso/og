@@ -1,4 +1,6 @@
 import sys
+from inspect import getframeinfo, stack
+from typing import Callable
 
 from loguru import logger
 
@@ -20,3 +22,15 @@ def set_logger_format():
     levels = ["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
     for level_name in levels:
         log.level(level_name, icon=level_name[0])
+
+
+_log_one_set = set()
+
+
+def log_once(log_fn: Callable, message: str, *args, **kwargs):
+    caller = getframeinfo(stack()[1][0])
+    caller_id = "{}:{}".format(caller.filename, caller.lineno)
+    if caller_id in _log_one_set:
+        return
+    log_fn(message, *args, **kwargs)
+    _log_one_set.add(caller_id)

@@ -3,7 +3,6 @@ from typing import Protocol, TypeVar
 from jaxtyping import Bool
 
 from og.jax_types import Arr, Float
-from og.tfp import tfd
 
 State = Float[Arr, "nx"]
 EncState = Float[Arr, "enc_nx"]
@@ -99,13 +98,3 @@ QpFloat = Float[Arr, "nq"]
 QvFloat = Float[Arr, "nv"]
 
 HWCImage = Float[Arr, "h w c"]
-
-
-class DetPolicy(Protocol):
-    def __call__(self, state: State) -> Control:
-        ...
-
-
-class StochPolicy(Protocol):
-    def __call__(self, state: State) -> tfd.Distribution:
-        ...
