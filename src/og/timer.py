@@ -118,14 +118,13 @@ class Timer:
 
     @property
     def elapsed_mean(self):
-        if _all_cnt[self._name] > self.ignore_k:
+        if self._name in _all_cnt and _all_cnt[self._name] > self.ignore_k:
             return _all_time[self._name] / (_all_cnt[self._name] - self.ignore_k)
         else:
             return self.elapsed
 
     def print_results(self):
-        # print(self._format_results())
-        pass
+        print(self._format_results())
 
     def _format_results(self, indent="  "):
         children = self._children.values()
@@ -139,9 +138,9 @@ class Timer:
 
             child_percent = child.elapsed_mean / elapsed * 100
 
-            if child_percent > 100:
-                print("??")
-                ipdb.set_trace()
+            # if child_percent > 100:
+            #     print("??")
+            #     ipdb.set_trace()
 
             lines[0] += " (%d%%)" % child_percent
             if count_digits:
