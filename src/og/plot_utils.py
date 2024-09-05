@@ -58,6 +58,7 @@ def line_labels(
     alpha: float = 1.0,
     label_pos: str = "right",
     label_eps: float = 1e-3,
+    min_label_dist_scale: float = 1.0,
     **text_kwargs,
 ):
     if ax is None:
@@ -82,6 +83,7 @@ def line_labels(
         assert fontsize is not None
         min_label_distance_inches = fontsize / 72 * alpha
         min_label_distance = min_label_distance_inches / ax_height_inches * ax_height_ylim
+        min_label_distance = min_label_distance * min_label_dist_scale
 
     # find all Line2D objects with a valid label and valid data
     lines = [
