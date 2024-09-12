@@ -20,15 +20,18 @@ class EzAxes:
 
     def get(self, n_axes: int | None = None):
         if n_axes is None:
-            ax = self.axes[self.idx]
-            self.idx += 1
-            if self.idx >= len(self.axes):
+            new_idx = self.idx + 1
+            if new_idx > len(self.axes):
                 raise IndexError("No more axes available.")
+
+            ax = self.axes[self.idx]
+            self.idx = new_idx
 
             return ax
 
-        axes = self.axes[self.idx : self.idx + n_axes]
-        self.idx += n_axes
-        if self.idx >= len(self.axes):
+        new_idx = self.idx + n_axes
+        if new_idx > len(self.axes):
             raise IndexError("No more axes available.")
+        axes = self.axes[self.idx : new_idx]
+        self.idx = new_idx
         return axes
