@@ -12,6 +12,12 @@ class EzAxes:
     def __len__(self):
         return len(self.axes)
 
+    @overload
+    def get(self) -> plt.Axes: ...
+
+    @overload
+    def get(self, n_axes: int) -> list[plt.Axes]: ...
+
     def get(self, n_axes: int | None = None):
         if n_axes is None:
             ax = self.axes[self.idx]
@@ -26,9 +32,3 @@ class EzAxes:
         if self.idx >= len(self.axes):
             raise IndexError("No more axes available.")
         return axes
-
-    @overload
-    def get(self) -> plt.Axes: ...
-
-    @overload
-    def get(self, n_axes: int) -> list[plt.Axes]: ...
