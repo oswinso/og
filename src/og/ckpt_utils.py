@@ -30,10 +30,15 @@ class EzManager:
     def _save_ez_dict(self, step: int, items: dict):
         args = {}
 
+        primitive_types = (int, float, str, bool)
+
         for k, v in items.items():
             if isinstance(v, Cfg):
                 # Call asdict on all instances of Cfg. Save using JSON.
                 arg = ocp.args.JsonSave(v.asdict())
+            elif isinstance(v, primitive_types):
+                # Save as JSON.
+                arg = ocp.args.JsonSave(v)
             elif attrs.has(v):
                 # Call asdict on all instances of attrs. Save using JSON.
                 arg = ocp.args.JsonSave(asdict(v))
