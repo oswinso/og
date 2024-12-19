@@ -6,7 +6,7 @@ from loguru import logger
 
 def reorder_wandb_name(wandb_name: str = None, num_width: int = 4, max_word_len: int = 5) -> str:
     name_orig = wandb.run.name
-    if name_orig == "":
+    if name_orig == "" or name_orig is None:
         # Probably offline. Generate a new name.
         if wandb_name is not None:
             return wandb_name
