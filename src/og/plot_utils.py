@@ -116,8 +116,8 @@ def line_labels(
     # Sometimes, the max value if beyond ymax. It'd be cool if in this case we could put
     # the label above the graph (instead of the to the right), but for now let's just
     # cap the target y.
-    ymax = ax.get_ylim()[1]
-    targets = [min(target, ymax) for target in targets]
+    ymin, ymax = ax.get_ylim()
+    targets = [max(ymin, min(target, ymax)) for target in targets]
 
     targets = _move_min_distance(targets, min_label_distance)
     if logy:
