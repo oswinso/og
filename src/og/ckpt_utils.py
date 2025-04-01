@@ -4,12 +4,14 @@ from typing import Any
 
 import attrs
 import ipdb
+import jax
 import jax.tree_util as jtu
 import numpy as np
 import orbax
 import orbax.checkpoint as ocp
 from attrs import asdict
 from flax.training import orbax_utils
+from loguru import logger
 
 from og.cfg_utils import Cfg
 
@@ -84,24 +86,27 @@ def load_from_ckpt(ckpt_path: pathlib.Path, item, name: str | None = None):
     handler = ocp.CompositeCheckpointHandler(name)
     ckpter = ocp.Checkpointer(handler)
 
-    restore_dict_flat = {name: ocp.args.StandardRestore()}
-    ckpt_dict_flat = ckpter.restore(ckpt_path, ocp.args.Composite(**restore_dict_flat))
-
     restore_dict = {name: ocp.args.StandardRestore(item)}
     ckpt_dict = ckpter.restore(ckpt_path, ocp.args.Composite(**restore_dict))
-
-    keyleaves1, _ = jtu.tree_flatten_with_path(ckpt_dict_flat[name])
     keyleaves2, _ = jtu.tree_flatten_with_path(ckpt_dict[name])
-    # jtu.tree_map(check_same_shape, keyleaves1, keyleaves2)
-
-    keyleaves1 = {tuple(get_key_name(k) for k in kk): v for kk, v in keyleaves1}
     keyleaves2 = {tuple(get_key_name(k) for k in kk): v for kk, v in keyleaves2}
 
-    for key1, v1 in keyleaves1.items():
-        v2 = keyleaves2[key1]
-        k_name = "/".join([str(s) for s in key1])
-        if np.asarray(v1).shape != np.asarray(v2).shape:
-            raise ValueError(f"Shape mismatch for {k_name}: {v1.shape} != {v2.shape}")
+    # Only check if we have gpu, otherwise we run into a bug.
+    if jax.default_backend() == "cpu":
+        logger.warning("Skipping shape checks since only cpu, has orbax bug")
+    else:
+        restore_dict_flat = {name: ocp.args.StandardRestore()}
+        ckpt_dict_flat = ckpter.restore(ckpt_path, ocp.args.Composite(**restore_dict_flat))
+
+        keyleaves1, _ = jtu.tree_flatten_with_path(ckpt_dict_flat[name])
+        # jtu.tree_map(check_same_shape, keyleaves1, keyleaves2)
+        keyleaves1 = {tuple(get_key_name(k) for k in kk): v for kk, v in keyleaves1}
+
+        for key1, v1 in keyleaves1.items():
+            v2 = keyleaves2[key1]
+            k_name = "/".join([str(s) for s in key1])
+            if np.asarray(v1).shape != np.asarray(v2).shape:
+                raise ValueError(f"Shape mismatch for {k_name}: {v1.shape} != {v2.shape}")
 
     return ckpt_dict[name]
 

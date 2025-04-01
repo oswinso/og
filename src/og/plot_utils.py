@@ -107,7 +107,18 @@ def line_labels(
     # Get last non-nan y-value.
     targets = []
     for line in lines:
+        xdata = np.array(line.get_xdata())
         ydata = np.array(line.get_ydata())
+        
+        # In case the xdata is not sorted, find the correct ypos_idx.
+        if label_pos == "right":
+            # Get the idx of the largest xdata.
+            ypos_idx = np.argmax(xdata)
+        elif label_pos == "left":
+            ypos_idx = np.argmin(xdata)
+        else:
+            raise ValueError("label_pos must be 'left' or 'right'")
+
         targets.append(ydata[~np.isnan(ydata)][ypos_idx])
 
     if logy:
