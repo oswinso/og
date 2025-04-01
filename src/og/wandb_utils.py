@@ -39,3 +39,19 @@ def reorder_wandb_name(wandb_name: str = None, num_width: int = 4, max_word_len:
         new_name = "{}-{}-{}".format(num, word0, word1)
     wandb.run.name = new_name
     return new_name
+
+
+def flatten_dict(d: dict, separator: str = ".") -> dict:
+    """Flatten a arbitrarily nested dictionary. Used since wandb's online viz doesn't work well with nested dicts."""
+
+    def _flatten_dict(d, parent_key=""):
+        items = []
+        for k, v in d.items():
+            new_key = f"{parent_key}{separator}{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.extend(_flatten_dict(v, new_key).items())
+            else:
+                items.append((new_key, v))
+        return dict(items)
+
+    return _flatten_dict(d)
