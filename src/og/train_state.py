@@ -52,6 +52,15 @@ class TrainState(Generic[_R], struct.PyTreeNode):
 
     def set_batch_stats(self, batch_stats: dict) -> "TrainState":
         return self.replace(batch_stats=batch_stats)
+    
+    def set_lr(self, lr: FloatScalar):
+        hyperparams = self.opt_state.hyperparams
+        lr_keys = ["lr", "learning_rate"]
+        for key in lr_keys:
+            if key in hyperparams:
+                hyperparams[key] = lr
+                return
+        raise KeyError(f"Couldn't find lr key in hyperparams! keys: {hyperparams.keys()}")
 
     @property
     def lr(self) -> FloatScalar:
