@@ -1,5 +1,6 @@
 import datetime
 import pathlib
+import pickle
 from typing import Any
 
 import attrs
@@ -17,8 +18,9 @@ from og.cfg_utils import Cfg
 
 
 class EzManager:
-    def __init__(self, mngr: ocp.CheckpointManager):
+    def __init__(self, mngr: ocp.CheckpointManager, ckpt_dir: pathlib.Path):
         self.mngr = mngr
+        self.ckpt_dir = ckpt_dir
 
     def wait_until_finished(self):
         return self.mngr.wait_until_finished()
@@ -28,6 +30,10 @@ class EzManager:
             return self._save_ez_dict(step, items)
 
         return self._save_ez(step, items)
+
+    def save_config(self, config: dict):
+        with open(self.ckpt_dir / "config.pkl", "wb") as f:
+            pickle.dump(config, f)
 
     def _save_ez_dict(self, step: int, items: dict):
         args = {}
@@ -60,10 +66,12 @@ class EzManager:
         return ckpt_path
 
 
-def get_ckpt_manager(ckpt_dir: pathlib.Path, item_names: list[str] | None, max_to_keep: int = 100):
-    options = ocp.CheckpointManagerOptions(max_to_keep=max_to_keep, step_format_fixed_length=5)
+def get_ckpt_manager(
+    ckpt_dir: pathlib.Path, item_names: list[str] | None, max_to_keep: int = 100, step_format_fixed_length: int = 5
+):
+    options = ocp.CheckpointManagerOptions(max_to_keep=max_to_keep, step_format_fixed_length=step_format_fixed_length)
     mngr = ocp.CheckpointManager(ckpt_dir, item_names=item_names, options=options)
-    return EzManager(mngr)
+    return EzManager(mngr, ckpt_dir)
 
 
 def load_cfg_from_ckpt(ckpt_path: pathlib.Path, name: str) -> Cfg:
