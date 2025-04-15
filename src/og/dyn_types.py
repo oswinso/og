@@ -22,6 +22,9 @@ BPolObs = Float[Arr, "b npolobs"]
 BVObs = Float[Arr, "b nVobs"]
 BParam = TypeVar("BParam")
 
+NFloat = Float[Arr, "n"]
+BNFloat = Float[Arr, "b n"]
+
 TFloat = Float[Arr, "T"]
 BTFloat = Float[Arr, "b T"]
 Tp1Float = Float[Arr, "Tp1"]
