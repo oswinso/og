@@ -133,3 +133,20 @@ def tree_has_nan(tree):
         if jp.any(which_np(leaf).isnan(leaf)):
             return True
     return False
+
+
+def make_batch_pytree(tree: _PyTree, size: int, fill_value: int | float = 0, whichnp=None) -> _PyTree:
+    """Append a batch dimension to all arrays in the pytree. If it is an int / float, turn it into an array."""
+
+    if whichnp is None:
+        whichnp = which_np(tree)
+
+    def fn(val: np.ndarray | jnp.ndarray | float | int | bool):
+        if isinstance(val, (np.ndarray, jnp.ndarray)):
+            return whichnp.full((size,) + val.shape, val)
+        else:
+            # Either float, int, or bool
+            dtype = np.float32 if isinstance(val, float) else np.int32 if isinstance(val, int) else bool
+            return whichnp.full(size, fill_value, dtype=dtype)
+
+    return jtu.tree_map(fn, tree)
