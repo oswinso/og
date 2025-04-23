@@ -65,12 +65,38 @@ class EzManager:
         ckpt_path = self.mngr._get_save_directory(step, self.mngr.directory)
         return ckpt_path
 
+    def load_ez(self, items: Any):
+        assert isinstance(items, dict)
+        return self._load_ez_dict(items)
+
+    def _load_ez_dict(self, items: Any):
+        args = {}
+
+        primitive_types = (int, float, str, bool)
+
+        for k, v in items.items():
+            if isinstance(v, Cfg):
+                # Call asdict on all instances of Cfg. Save using JSON.
+                arg = ocp.args.JsonRestore(v.asdict())
+            elif isinstance(v, primitive_types):
+                # Save as JSON.
+                arg = ocp.args.JsonRestore(v)
+            elif attrs.has(v):
+                # Call asdict on all instances of attrs. Save using JSON.
+                arg = ocp.args.JsonRestore(asdict(v))
+            else:
+                # Save as PyTree.
+                arg = ocp.args.StandardRestore(v)
+
+            args[k] = arg
+        return self.mngr.restore(step=None, args=ocp.args.Composite(**args))
+
 
 def get_ckpt_manager(
     ckpt_dir: pathlib.Path, item_names: list[str] | None, max_to_keep: int = 100, step_format_fixed_length: int = 5
 ):
     options = ocp.CheckpointManagerOptions(max_to_keep=max_to_keep, step_format_fixed_length=step_format_fixed_length)
-    mngr = ocp.CheckpointManager(ckpt_dir, item_names=item_names, options=options)
+    mngr = ocp.CheckpointManager(ckpt_dir.absolute(), item_names=item_names, options=options)
     return EzManager(mngr, ckpt_dir)
 
 
