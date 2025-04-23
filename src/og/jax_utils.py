@@ -7,6 +7,7 @@ import jax.tree_util as jtu
 import numpy as np
 from jax._src.lib import xla_client as xc
 from jaxtyping import Float
+from jumpy.core import which_np
 
 from og.jax_types import Arr
 
@@ -111,7 +112,9 @@ def concat_at_front(arr1: Float[Arr, "nx"], arr2: Float[Arr, "T nx"], axis: int 
     del arr2_shape[axis]
     assert np.all(np.array(arr1.shape) == np.array(arr2_shape))
 
-    return jnp.concatenate([jnp.expand_dims(arr1, axis=axis), arr2], axis=axis)
+    np_ = which_np(arr1, arr2)
+
+    return np_.concatenate([np_.expand_dims(arr1, axis=axis), arr2], axis=axis)
 
 
 def concat_at_end(arr1: Float[Arr, "T nx"], arr2: Float[Arr, "nx"], axis: int = 0) -> Float[Arr, "Tp1 nx"]:
@@ -126,7 +129,7 @@ def concat_at_end(arr1: Float[Arr, "T nx"], arr2: Float[Arr, "nx"], axis: int = 
     del arr1_shape[axis]
     assert np.all(np.array(arr1_shape) == np.array(arr2.shape))
 
-    return jnp.concatenate([arr1, jnp.expand_dims(arr2, axis=axis)], axis=axis)
+    return jp.concatenate([arr1, jp.expand_dims(arr2, axis=axis)], axis=axis)
 
 
 def sinc(x: Float[Arr, "..."]) -> Float[Arr, "..."]:

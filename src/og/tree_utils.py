@@ -103,7 +103,11 @@ def tree_where_dim0(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
         # x: (b, ...)
         # y: (b, ...)
         # cond: (b, )
-        cond_reshaped = jp.reshape(cond, (cond.shape[0],) + (1,) * (len(x.shape) - 1))
+
+        # Get the full shape by broadcasting x and y.
+        full_shape = np.broadcast_shapes(x.shape, y.shape)
+
+        cond_reshaped = jp.reshape(cond, (cond.shape[0],) + (1,) * (len(full_shape) - 1))
         return jp.where(cond_reshaped, x, y)
 
     return jax.tree_map(tree_where_inner, x_tree, y_tree)
@@ -143,7 +147,7 @@ def make_batch_pytree(tree: _PyTree, size: int, fill_value: int | float = 0, whi
 
     def fn(val: np.ndarray | jnp.ndarray | float | int | bool):
         if isinstance(val, (np.ndarray, jnp.ndarray)):
-            return whichnp.full((size,) + val.shape, val)
+            return whichnp.full((size,) + val.shape, fill_value, dtype=val.dtype)
         else:
             # Either float, int, or bool
             dtype = np.float32 if isinstance(val, float) else np.int32 if isinstance(val, int) else bool
