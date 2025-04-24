@@ -139,6 +139,10 @@ def tree_has_nan(tree):
     return False
 
 
+def tree_index(index: int, tree: _PyTree) -> _PyTree:
+    return jtu.tree_map(lambda x: x[index], tree)
+
+
 def make_batch_pytree(tree: _PyTree, size: int, fill_value: int | float = 0, whichnp=None) -> _PyTree:
     """Append a batch dimension to all arrays in the pytree. If it is an int / float, turn it into an array."""
 
