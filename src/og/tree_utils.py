@@ -95,7 +95,7 @@ def tree_where(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
     def tree_where_inner(x, y):
         return jp.where(cond, x, y)
 
-    return jax.tree_map(tree_where_inner, x_tree, y_tree)
+    return jtu.tree_map(tree_where_inner, x_tree, y_tree)
 
 
 def tree_where_dim0(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
@@ -110,11 +110,11 @@ def tree_where_dim0(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
         cond_reshaped = jp.reshape(cond, (cond.shape[0],) + (1,) * (len(full_shape) - 1))
         return jp.where(cond_reshaped, x, y)
 
-    return jax.tree_map(tree_where_inner, x_tree, y_tree)
+    return jtu.tree_map(tree_where_inner, x_tree, y_tree)
 
 
 def tree_copy(tree: _PyTree) -> _PyTree:
-    return jax.tree_map(lambda x: x.copy(), tree)
+    return jtu.tree_map(lambda x: x.copy(), tree)
 
 
 def tree_len(tree: _PyTree) -> int:

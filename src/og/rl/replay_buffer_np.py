@@ -4,6 +4,7 @@ import einops as ei
 import jax
 import jax.lax as lax
 import jax.random as jr
+import jax.tree_util as jtu
 import numpy as np
 from flax import struct
 from typing_extensions import Self
@@ -27,7 +28,7 @@ class ReplayBufferNp(struct.PyTreeNode):
 
     @classmethod
     def create(cls, item_proto: Item, capacity: int) -> Self:
-        data = jax.tree_map(lambda x: np.array(ei.repeat(x, "... -> b ...", b=capacity)), item_proto)
+        data = jtu.tree_map(lambda x: np.array(ei.repeat(x, "... -> b ...", b=capacity)), item_proto)
         return ReplayBufferNp(data, np.array(0), np.array(0), np.array(False), capacity)
 
     def push(self, item: Item) -> Self:
@@ -35,7 +36,7 @@ class ReplayBufferNp(struct.PyTreeNode):
             data[insert_pos] = arr
 
         insert_pos = self.head
-        jax.tree_map(push_fn, self.data, item)
+        jtu.tree_map(push_fn, self.data, item)
         self.head[...] = (insert_pos + 1) % self.capacity
         self.size[...] = lax.select(self.is_full, self.capacity, self.size + 1)
         self.is_full[...] = self.size == self.capacity
@@ -47,7 +48,7 @@ class ReplayBufferNp(struct.PyTreeNode):
 
         # Slow but correct.
         for ii in range(batch_size):
-            item = jax.tree_map(lambda x: x[ii], b_item)
+            item = jtu.tree_map(lambda x: x[ii], b_item)
             self.push(item)
 
         return self
@@ -63,7 +64,7 @@ class ReplayBufferNp(struct.PyTreeNode):
         # size2 is the number of items we wrap around from the start.
         size1 = min(batch_size, self.capacity - self.head)
         size2 = batch_size - size1
-        jax.tree_map(push_fn, self.data, b_item)
+        jtu.tree_map(push_fn, self.data, b_item)
 
         self.head[...] = (self.head + batch_size) % self.capacity
         self.size[...] = self.capacity if self.is_full else min(self.size + batch_size, self.capacity)
@@ -73,7 +74,7 @@ class ReplayBufferNp(struct.PyTreeNode):
     def get_at_index(self, idx: int | IntScalar) -> Item:
         if np.any(idx >= self.size):
             raise IndexError(f"Trying to index {idx}, size {self.size}")
-        return jax.tree_map(lambda x: x[idx], self.data)
+        return jtu.tree_map(lambda x: x[idx], self.data)
 
     def uniform_sample_np(self, rng: np.random.Generator, batch_size: int) -> BItem:
         assert isinstance(batch_size, int), f"batch_size should be int, got {type(batch_size).__name__}"
