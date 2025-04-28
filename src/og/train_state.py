@@ -13,6 +13,7 @@ _Params = TypeVar("_Params")
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
+_C = TypeVar("_C")
 _ApplyFn = Callable[Concatenate[_Params, _P], _R]
 
 
@@ -52,7 +53,7 @@ class TrainState(Generic[_R], struct.PyTreeNode):
 
     def set_batch_stats(self, batch_stats: dict) -> "TrainState":
         return self.replace(batch_stats=batch_stats)
-    
+
     def set_lr(self, lr: FloatScalar):
         hyperparams = self.opt_state.hyperparams
         lr_keys = ["lr", "learning_rate"]
@@ -109,6 +110,33 @@ class TrainState(Generic[_R], struct.PyTreeNode):
     def strip(self) -> "TrainState":
         """Remove tx and opt_state."""
         return self.replace(tx=None, opt_state=None)
+
+
+# class EqTrainState(Generic[_C], struct.PyTreeNode):
+#     step: int
+#     model: _C
+#     tx: optax.GradientTransformation = struct.field(pytree_node=False)
+#     opt_state: optax.OptState | optax.InjectHyperparamsState
+#
+#     @classmethod
+#     def create(
+#         cls,
+#         model: _C,
+#         tx: optax.GradientTransformation,
+#         **kwargs,
+#     ) -> "TrainState":
+#         """Creates a new instance with `step=0` and initialized `opt_state`."""
+#         opt_state = None
+#         if tx is not None:
+#             opt_state = tx.init(model)
+#         return cls(
+#             step=0,
+#             model=model,
+#             params=model,
+#             tx=tx,
+#             opt_state=opt_state,
+#             **kwargs,
+#         )
 
 
 class BNTrainState(TrainState[_R]):

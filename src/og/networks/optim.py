@@ -1,8 +1,11 @@
 import functools as ft
 
+import ipdb
 import jax.numpy as jnp
+import jax.tree_util as jtu
 import optax
 from flax import traverse_util
+from jax._src.tree_util import GetAttrKey, keystr
 from loguru import logger
 
 from og.jax_types import FloatScalar
@@ -17,11 +20,12 @@ def silence_apply_if_finite():
 
 
 def wd_mask(params):
-    Path = tuple[str, ...]
-    flat_params: dict[Path, jnp.ndarray] = traverse_util.flatten_dict(params)
-    # Apply weight decay to all parameters except biases and LayerNorm scale and bias.
-    flat_mask = {path: (path[-1] != "bias" and path[-2:] != ("LayerNorm", "scale")) for path in flat_params}
-    return traverse_util.unflatten_dict(flat_mask)
+    def f(key_path, val):
+        key_path_str = keystr(key_path)
+        no_decay = ("bias" in key_path_str) or ("LayerNorm.scale" in key_path_str)
+        return not no_decay
+
+    return jtu.tree_map_with_path(f, params)
 
 
 def optim(learning_rate: float, wd: float, eps: float, hide_nans: bool):
