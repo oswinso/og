@@ -1,8 +1,10 @@
-from typing import Callable, Concatenate, Generic, ParamSpec, TypeVar
+from typing import Any, Callable, Concatenate, Generic, ParamSpec, TypeVar
 
 import flax.linen as nn
+import jax.tree_util as jtu
 import optax
 from flax import struct
+from jaxtyping import PyTreeDef
 from optax._src.wrappers import ApplyIfFiniteState
 
 from og.jax_types import FloatScalar
@@ -112,31 +114,65 @@ class TrainState(Generic[_R], struct.PyTreeNode):
         return self.replace(tx=None, opt_state=None)
 
 
-# class EqTrainState(Generic[_C], struct.PyTreeNode):
-#     step: int
-#     model: _C
-#     tx: optax.GradientTransformation = struct.field(pytree_node=False)
-#     opt_state: optax.OptState | optax.InjectHyperparamsState
-#
-#     @classmethod
-#     def create(
-#         cls,
-#         model: _C,
-#         tx: optax.GradientTransformation,
-#         **kwargs,
-#     ) -> "TrainState":
-#         """Creates a new instance with `step=0` and initialized `opt_state`."""
-#         opt_state = None
-#         if tx is not None:
-#             opt_state = tx.init(model)
-#         return cls(
-#             step=0,
-#             model=model,
-#             params=model,
-#             tx=tx,
-#             opt_state=opt_state,
-#             **kwargs,
-#         )
+class EqTrainState(Generic[_C], struct.PyTreeNode):
+    step: int
+    params: list[Any]
+    model_treedef: PyTreeDef = struct.field(pytree_node=False)
+    tx: optax.GradientTransformation = struct.field(pytree_node=False)
+    opt_state: optax.OptState | optax.InjectHyperparamsState
+
+    @property
+    def model(self) -> _C:
+        return jtu.tree_unflatten(self.model_treedef, self.params)
+
+    def model_with(self, params: _Params) -> _C:
+        return jtu.tree_unflatten(self.model_treedef, params)
+
+    def apply_gradients(self, grads: _Params, **kwargs) -> "EqTrainState":
+        updates, new_opt_state = self.tx.update(grads, self.opt_state, self.params)
+        new_params = optax.apply_updates(self.params, updates)
+        return self.replace(step=self.step + 1, params=new_params, opt_state=new_opt_state, **kwargs)
+
+    def set_lr(self, lr: FloatScalar):
+        hyperparams = self.opt_state.hyperparams
+        lr_keys = ["lr", "learning_rate"]
+        for key in lr_keys:
+            if key in hyperparams:
+                hyperparams[key] = lr
+                return
+        raise KeyError(f"Couldn't find lr key in hyperparams! keys: {hyperparams.keys()}")
+
+    @property
+    def lr(self) -> FloatScalar:
+        hyperparams = self.opt_state.hyperparams
+        lr_keys = ["lr", "learning_rate"]
+        for key in lr_keys:
+            if key in hyperparams:
+                return hyperparams[key]
+        raise KeyError(f"Couldn't find lr key in hyperparams! keys: {hyperparams.keys()}")
+
+    @classmethod
+    def create(
+        cls,
+        model: _C,
+        tx: optax.GradientTransformation,
+        **kwargs,
+    ) -> "EqTrainState":
+        """Creates a new instance with `step=0` and initialized `opt_state`."""
+        flat_model, treedef_model = jtu.tree_flatten(model)
+        del model
+
+        opt_state = None
+        if tx is not None:
+            opt_state = tx.init(flat_model)
+        return cls(
+            step=0,
+            params=flat_model,
+            model_treedef=treedef_model,
+            tx=tx,
+            opt_state=opt_state,
+            **kwargs,
+        )
 
 
 class BNTrainState(TrainState[_R]):
