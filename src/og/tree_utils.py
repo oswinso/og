@@ -1,3 +1,4 @@
+from types import ModuleType
 from typing import TypeVar
 
 import jax
@@ -56,10 +57,13 @@ def tree_concat_at_front(tree1: _PyTree, tree2: _PyTree) -> _PyTree:
     return jtu.tree_map(concat_at_front, tree1, tree2)
 
 
-def tree_stack(trees: list[_PyTree], axis: int = 0) -> _PyTree:
+def tree_stack(trees: list[_PyTree], axis: int = 0, which: ModuleType | None = None) -> _PyTree:
+    if which is None:
+        which = which_np(trees)
+
     def tree_stack_inner(*arrs):
         arrs = list(arrs)
-        return jp.stack(arrs, axis=axis)
+        return which.stack(arrs, axis=axis)
 
     return jtu.tree_map(tree_stack_inner, *trees)
 
@@ -73,10 +77,13 @@ def tree_unstack(tree: _PyTree, axis: int = 0) -> list[_PyTree]:
     return [get_idx(ii) for ii in range(tree_shape(tree, axis=axis))]
 
 
-def tree_cat(trees: list[_PyTree], axis: int = 0) -> _PyTree:
+def tree_cat(trees: list[_PyTree], axis: int = 0, which: ModuleType | None = None) -> _PyTree:
+    if which is None:
+        which = which_np(trees)
+
     def tree_cat_inner(*arrs):
         arrs = list(arrs)
-        return jp.concatenate(arrs, axis=axis)
+        return which.concatenate(arrs, axis=axis)
 
     return jtu.tree_map(tree_cat_inner, *trees)
 
