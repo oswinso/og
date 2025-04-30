@@ -66,11 +66,11 @@ class EzManager:
         ckpt_path = self.mngr._get_save_directory(step, self.mngr.directory)
         return ckpt_path
 
-    def load_ez(self, items: Any):
+    def load_ez(self, items: Any, step: int | None = None):
         assert isinstance(items, dict)
-        return self._load_ez_dict(items)
+        return self._load_ez_dict(items, step=step)
 
-    def _load_ez_dict(self, items: Any):
+    def _load_ez_dict(self, items: Any, step: int | None = None):
         args = {}
 
         primitive_types = (int, float, str, bool)
@@ -90,7 +90,7 @@ class EzManager:
                 arg = ocp.args.StandardRestore(v)
 
             args[k] = arg
-        return self.mngr.restore(step=None, args=ocp.args.Composite(**args))
+        return self.mngr.restore(step=step, args=ocp.args.Composite(**args))
 
 
 def get_ckpt_manager(
