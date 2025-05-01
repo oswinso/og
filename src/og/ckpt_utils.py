@@ -97,7 +97,7 @@ def get_ckpt_manager(
     ckpt_dir: pathlib.Path, item_names: list[str] | None, max_to_keep: int = 100, step_format_fixed_length: int = 5
 ):
     # Don't print warning everytime we save
-    warnings.filterwarnings("ignore", message="Skipped cross-host ArrayMetadata validation because only one process is found")
+    warnings.filterwarnings("ignore", message=".*Skipped cross-host ArrayMetadata validation.*")
 
     options = ocp.CheckpointManagerOptions(max_to_keep=max_to_keep, step_format_fixed_length=step_format_fixed_length)
     mngr = ocp.CheckpointManager(ckpt_dir.absolute(), item_names=item_names, options=options)
