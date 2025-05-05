@@ -150,6 +150,17 @@ def tree_index(index: int, tree: _PyTree) -> _PyTree:
     return jtu.tree_map(lambda x: x[index], tree)
 
 
+def make_batch(
+    val: np.ndarray | jnp.ndarray | float | int | bool, size: int, fill_value: int | float = 0, which: ModuleType = np
+):
+    if isinstance(val, (np.ndarray, jnp.ndarray)):
+        return which.full((size,) + val.shape, fill_value, dtype=val.dtype)
+    else:
+        # Either float, int, or bool
+        dtype = np.float32 if isinstance(val, float) else np.int32 if isinstance(val, int) else bool
+        return which.full(size, fill_value, dtype=dtype)
+
+
 def make_batch_pytree(tree: _PyTree, size: int, fill_value: int | float = 0, whichnp=None) -> _PyTree:
     """Append a batch dimension to all arrays in the pytree. If it is an int / float, turn it into an array."""
 
