@@ -12,3 +12,10 @@ def current_file_dir(up: int = 0) -> pathlib.Path:
     caller_file = pathlib.Path(inspect.stack()[up + 1].filename)
     assert caller_file.exists()
     return caller_file.parent
+
+
+def safe_path_exists(path: pathlib.Path) -> bool:
+    try:
+        return path.exists()
+    except PermissionError:
+        return False
