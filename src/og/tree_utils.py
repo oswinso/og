@@ -106,7 +106,7 @@ def tree_where(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
     return jtu.tree_map(tree_where_inner, x_tree, y_tree)
 
 
-def tree_where_dim0(cond, x_tree: _PyTree, y_tree: _PyTree, which: ModuleType = np) -> _PyTree:
+def tree_where_dim0(cond, x_tree: _PyTree, y_tree: _PyTree, which: ModuleType = jnp) -> _PyTree:
     def tree_where_inner(x, y):
         # x: (b, ...)
         # y: (b, ...)
