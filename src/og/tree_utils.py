@@ -1,6 +1,7 @@
 from types import ModuleType
 from typing import TypeVar
 
+import einops as ei
 import jax
 import jax.numpy as jnp
 import jax.tree_util as jtu
@@ -105,7 +106,7 @@ def tree_where(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
     return jtu.tree_map(tree_where_inner, x_tree, y_tree)
 
 
-def tree_where_dim0(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
+def tree_where_dim0(cond, x_tree: _PyTree, y_tree: _PyTree, which: ModuleType = np) -> _PyTree:
     def tree_where_inner(x, y):
         # x: (b, ...)
         # y: (b, ...)
@@ -114,8 +115,8 @@ def tree_where_dim0(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
         # Get the full shape by broadcasting x and y.
         full_shape = np.broadcast_shapes(x.shape, y.shape)
 
-        cond_reshaped = jp.reshape(cond, (cond.shape[0],) + (1,) * (len(full_shape) - 1))
-        return jp.where(cond_reshaped, x, y)
+        cond_reshaped = which.reshape(cond, (cond.shape[0],) + (1,) * (len(full_shape) - 1))
+        return which.where(cond_reshaped, x, y)
 
     return jtu.tree_map(tree_where_inner, x_tree, y_tree)
 
@@ -161,7 +162,7 @@ def make_batch(
         return which.full(size, fill_value, dtype=dtype)
 
 
-def make_batch_pytree(tree: _PyTree, size: int, fill_value: int | float = 0, whichnp=None) -> _PyTree:
+def make_batch_pytree(tree: _PyTree, size: int, fill_value: int | float | str = 0, whichnp=None) -> _PyTree:
     """Append a batch dimension to all arrays in the pytree. If it is an int / float, turn it into an array."""
 
     if whichnp is None:
@@ -169,10 +170,16 @@ def make_batch_pytree(tree: _PyTree, size: int, fill_value: int | float = 0, whi
 
     def fn(val: np.ndarray | jnp.ndarray | float | int | bool):
         if isinstance(val, (np.ndarray, jnp.ndarray)):
-            return whichnp.full((size,) + val.shape, fill_value, dtype=val.dtype)
+            if fill_value == "repeat":
+                return ei.repeat(val, "... -> b ...", b=size)
+            else:
+                return whichnp.full((size,) + val.shape, fill_value, dtype=val.dtype)
         else:
             # Either float, int, or bool
             dtype = np.float32 if isinstance(val, float) else np.int32 if isinstance(val, int) else bool
-            return whichnp.full(size, fill_value, dtype=dtype)
+            if fill_value == "repeat":
+                return whichnp.full(size, val, dtype=dtype)
+            else:
+                return whichnp.full(size, fill_value, dtype=dtype)
 
     return jtu.tree_map(fn, tree)
