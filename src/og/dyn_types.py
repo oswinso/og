@@ -87,6 +87,10 @@ BTVObs = Float[Arr, "b T nVobs"]
 BTPolObs = Float[Arr, "b T npolobs"]
 BTSample = Float[Arr, "b T *"]
 
+TBControl = Float[Arr, "T b nu"]
+TBFloat = Float[Arr, "T b"]
+TBBool = Bool[Arr, "T b"]
+
 BTEFloat = Float[Arr, "b T e"]
 BTEState = Float[Arr, "b T e nx"]
 
