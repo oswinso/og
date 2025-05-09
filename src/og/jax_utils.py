@@ -1,3 +1,4 @@
+from types import ModuleType
 from typing import Any, Callable, Iterable, ParamSpec, Sequence, TypeVar
 
 import einops as ei
@@ -135,3 +136,13 @@ def concat_at_end(arr1: Float[Arr, "T nx"], arr2: Float[Arr, "nx"], axis: int = 
 def sinc(x: Float[Arr, "..."]) -> Float[Arr, "..."]:
     """Note: The derivative is not correct at x = 0 because we use where."""
     return jnp.where(x == 0.0, jnp.ones_like(x), jnp.sin(x) / x)
+
+
+def stack_broadcast(arrays, axis: int = 0, which: ModuleType = jnp):
+    # Broadcast all arrays to the same shape.
+    broadcast_shape = np.broadcast_shapes(*[arr.shape for arr in arrays])
+
+    # Broadcast each array to the common shape
+    broadcasted = [which.broadcast_to(arr, broadcast_shape) for arr in arrays]
+
+    return which.stack(broadcasted, axis=axis)

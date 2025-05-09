@@ -158,9 +158,21 @@ def make_batch(
         return which.full((size,) + val.shape, fill_value, dtype=val.dtype)
     else:
         # Either float, int, or bool
-        dtype = np.float32 if isinstance(val, float) else np.int32 if isinstance(val, int) else bool
-        return which.full(size, fill_value, dtype=dtype)
+        match val:
+            case float() | np.float32():
+                dtype = np.float32
+            case bool() | np.bool_():
+                dtype = bool
+            case int() | np.int32():
+                dtype = np.int32
+            case _:
+                raise ValueError(f"Unsupported type {type(val)}")
 
+        # Either float, int, or bool
+        if dtype is bool:
+            return which.full(size, bool(fill_value), dtype=dtype)
+        else:
+            return which.full(size, fill_value, dtype=dtype)
 
 def make_batch_pytree(tree: _PyTree, size: int, fill_value: int | float | str = 0, whichnp=None) -> _PyTree:
     """Append a batch dimension to all arrays in the pytree. If it is an int / float, turn it into an array."""
@@ -176,10 +188,23 @@ def make_batch_pytree(tree: _PyTree, size: int, fill_value: int | float | str = 
                 return whichnp.full((size,) + val.shape, fill_value, dtype=val.dtype)
         else:
             # Either float, int, or bool
-            dtype = np.float32 if isinstance(val, float) else np.int32 if isinstance(val, int) else bool
+            match val:
+                case float() | np.float32():
+                    dtype = np.float32
+                case bool() | np.bool_():
+                    dtype = bool
+                case int() | np.int32():
+                    dtype = np.int32
+                case _:
+                    raise ValueError(f"Unsupported type {type(val)}")
+
+
             if fill_value == "repeat":
                 return whichnp.full(size, val, dtype=dtype)
             else:
-                return whichnp.full(size, fill_value, dtype=dtype)
+                if dtype is bool:
+                    return whichnp.full(size, bool(fill_value), dtype=bool)
+                else:
+                    return whichnp.full(size, fill_value, dtype=dtype)
 
     return jtu.tree_map(fn, tree)
