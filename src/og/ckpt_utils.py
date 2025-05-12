@@ -75,8 +75,33 @@ class EzManager:
         ckpt_path = self.mngr._get_save_directory(step, self.mngr.directory)
         return ckpt_path
 
+    def is_eqx_ckpt(self):
+        # The ckpt is saved using eqx if there are .eqx files in self.ckpt_dir
+        return any(f.suffix == ".eqx" for f in self.ckpt_dir.iterdir())
+
+    def _load_ez_dict_eqx(self, items: Any, step: int | None = None):
+        """Load using eqx."""
+        if step is None:
+            # Get the latests ckpt.
+            ckpts = sorted(self.ckpt_dir.glob("eqx_ckpt_*.eqx"))
+            if len(ckpts) == 0:
+                raise ValueError("No eqx ckpt found in {}".format(self.ckpt_dir))
+
+            ckpt_path = ckpts[-1]
+            step = int(ckpt_path.name.split("_")[-1].split(".")[0])
+        else:
+            ckpt_path = self.ckpt_dir / "eqx_ckpt_{:08}.eqx".format(step)
+
+        items_loaded = eqx.tree_deserialise_leaves(ckpt_path, items)
+        return items_loaded
+
     def load_ez(self, items: Any, step: int | None = None):
         assert isinstance(items, dict)
+
+        # See if this ckpt was saved using eqx or not due to running on supercloud.
+        if self.is_eqx_ckpt():
+            return self._load_ez_dict_eqx(items, step=step)
+
         return self._load_ez_dict(items, step=step)
 
     def _load_ez_dict(self, items: Any, step: int | None = None):
