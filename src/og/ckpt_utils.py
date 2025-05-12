@@ -1,7 +1,9 @@
 import datetime
-import warnings
+import equinox as eqx
+import os
 import pathlib
 import pickle
+import warnings
 from typing import Any
 
 import attrs
@@ -23,14 +25,21 @@ class EzManager:
         self.mngr = mngr
         self.ckpt_dir = ckpt_dir
 
+        # True if environment variable SUPERCLOUD=1 is set.
+        self.on_supercloud = os.environ.get("SUPERCLOUD", "0") == "1"
+
     def wait_until_finished(self):
         return self.mngr.wait_until_finished()
 
     def save_ez(self, step: int, items: Any):
-        if isinstance(items, dict):
-            return self._save_ez_dict(step, items)
+        if self.on_supercloud:
+            path = self.ckpt_dir / "eqx_ckpt_{:08}.eqx".format(step)
+            eqx.tree_serialise_leaves(path, items)
+        else:
+            if isinstance(items, dict):
+                return self._save_ez_dict(step, items)
 
-        return self._save_ez(step, items)
+            return self._save_ez(step, items)
 
     def save_config(self, config: dict):
         with open(self.ckpt_dir / "config.pkl", "wb") as f:
