@@ -1,5 +1,4 @@
 import datetime
-import equinox as eqx
 import os
 import pathlib
 import pickle
@@ -7,6 +6,7 @@ import warnings
 from typing import Any
 
 import attrs
+import equinox as eqx
 import ipdb
 import jax
 import jax.tree_util as jtu
@@ -74,6 +74,31 @@ class EzManager:
         self.mngr.save(step, args=ocp.args.StandardSave(items))
         ckpt_path = self.mngr._get_save_directory(step, self.mngr.directory)
         return ckpt_path
+
+    def get_all_steps(self) -> list[int]:
+        if self.is_eqx_ckpt():
+            return self.get_all_steps_eqx()
+        else:
+            return self.get_all_steps_orbax()
+
+    def get_all_steps_eqx(self) -> list[int]:
+        # Eqx ckpts are files saved as eqx_ckpt_00044000.eqx
+        ckpt_files = self.ckpt_dir.glob("eqx_ckpt_*.eqx")
+        # Parse the step from the file name.
+        steps = [int(c.name.split("_")[-1].split(".")[0]) for c in ckpt_files]
+        # Sort the steps.
+        steps.sort()
+        return steps
+
+    def get_all_steps_orbax(self) -> list[int]:
+        # Orbax ckpts are saved as folders with the step as the name, i.e.,
+        # 00000000, 00001000, 00002000, etc.
+        ckpt_dirs = self.ckpt_dir.glob("*/")
+        # Parse the step from the folder name.
+        steps = [int(c.name) for c in ckpt_dirs]
+        # Sort the steps.
+        steps.sort()
+        return steps
 
     def is_eqx_ckpt(self):
         # The ckpt is saved using eqx if there are .eqx files in self.ckpt_dir
