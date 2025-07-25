@@ -6,7 +6,7 @@ from attrs import astuple, define
 from cattrs.strategies import configure_tagged_union, include_subclasses
 
 
-@define
+@define(eq=False)
 class Cfg:
     @staticmethod
     def get_converter():
