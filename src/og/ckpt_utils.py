@@ -94,8 +94,17 @@ class EzManager:
         # Orbax ckpts are saved as folders with the step as the name, i.e.,
         # 00000000, 00001000, 00002000, etc.
         ckpt_dirs = self.ckpt_dir.glob("*/")
-        # Parse the step from the folder name.
-        steps = [int(c.name) for c in ckpt_dirs]
+        steps = []
+        for c in ckpt_dirs:
+            try:
+                steps.append(int(c.name))
+            except:
+                # Somehow theres's a "00000000.orbax-checkpoint-tmp-0"..
+                if "orbax-checkpoint-tmp" in c.name:
+                    continue
+
+                raise ValueError("Error parsing step from ckpt dir: {}".format(c.name))
+
         # Sort the steps.
         steps.sort()
         return steps
